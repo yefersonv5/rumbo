@@ -1,55 +1,55 @@
 :root {
-  --bg: #f3f4fa;
+  --bg: #f1f7f8;
   --surface: #ffffff;
-  --surface-2: #f1f2f8;
-  --ink: #171a2c;
-  --ink-2: #5b6078;
-  --ink-3: #8f94aa;
-  --line: #e6e8f1;
-  --grid: #eceef5;
-  --track: #e9eaf6;
-  --accent: #5b4fe0;
-  --accent-2: #7c72ec;
-  --accent-soft: #eceafd;
+  --surface-2: #ecf5f5;
+  --ink: #1b3550;
+  --ink-2: #4d677c;
+  --ink-3: #869cab;
+  --line: #dbe8eb;
+  --grid: #e6f0f2;
+  --track: #e0eef0;
+  --accent: #2a77ab;
+  --accent-2: #4193c2;
+  --accent-soft: #e0f0f7;
   --on-accent: #ffffff;
   --red: #c23b3a;
   --red-soft: #fde8e7;
   --amber: #a46400;
   --amber-soft: #fdf0d7;
-  --green: #1f7a4d;
-  --green-soft: #e0f3e8;
-  --blue: #2a6cc4;
-  --blue-soft: #e3eefb;
+  --green: #1d7a57;
+  --green-soft: #ddf2e8;
+  --blue: #2a77ab;
+  --blue-soft: #e0f0f7;
   /* Rutas: colores categóricos en orden fijo (validados para daltonismo) */
-  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a;
+  --c1: #3a8cc0; --c2: #3fae84; --c3: #305e87;
   --radius: 18px;
-  --shadow: 0 1px 2px rgba(23, 26, 44, .04), 0 8px 24px rgba(23, 26, 44, .06);
+  --shadow: 0 1px 2px rgba(27, 53, 80, .04), 0 8px 24px rgba(27, 53, 80, .06);
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0e1018;
-    --surface: #171a26;
-    --surface-2: #1f2331;
-    --ink: #eceef6;
-    --ink-2: #a8adc4;
-    --ink-3: #7a8099;
-    --line: #262a3a;
-    --grid: #232737;
-    --track: #262a3c;
-    --accent: #8f86f2;
-    --accent-2: #a79ff6;
-    --accent-soft: #252347;
-    --on-accent: #0e1018;
+    --bg: #0b1620;
+    --surface: #12212d;
+    --surface-2: #192b39;
+    --ink: #e5f0f4;
+    --ink-2: #a1bac9;
+    --ink-3: #7390a2;
+    --line: #21384a;
+    --grid: #1d3242;
+    --track: #213849;
+    --accent: #6ec7df;
+    --accent-2: #8fd6e8;
+    --accent-soft: #15364a;
+    --on-accent: #0b1620;
     --red: #f08a86;
     --red-soft: #3a1f22;
     --amber: #e8b45a;
     --amber-soft: #352b18;
-    --green: #74d3a0;
-    --green-soft: #17311f;
-    --blue: #8fb5ec;
-    --blue-soft: #1c2840;
-    --c1: #3987e5; --c2: #d95926; --c3: #199e70;
+    --green: #7ed1ab;
+    --green-soft: #143126;
+    --blue: #7cc0e6;
+    --blue-soft: #16324a;
+    --c1: #6ab8e2; --c2: #6cc39d; --c3: #a3c3e3;
     --shadow: none;
     color-scheme: dark;
   }
@@ -81,10 +81,11 @@ h1 { font-size: 24px; letter-spacing: -.02em; font-weight: 700; }
 h2 { font-size: 16px; font-weight: 650; letter-spacing: -.01em; }
 h3 { font-size: 15px; font-weight: 650; color: var(--ink); }
 .cap { display: inline-block; }
+p.cap, h1.cap { display: block; }
 .cap::first-letter { text-transform: uppercase; }
 /* Fecha sobre el saludo y los títulos: legible en claro y en oscuro */
 .fecha { margin: 0 0 4px; font-size: 14px; font-weight: 600; color: var(--ink-2); letter-spacing: .01em; }
-@media (prefers-color-scheme: dark) { .fecha { color: #c3c7d9; } }
+@media (prefers-color-scheme: dark) { .fecha { color: #bcd2de; } }
 svg { flex: none; }
 
 /* Estructura: barra inferior en el celular, barra lateral en el PC */
@@ -104,7 +105,7 @@ main { max-width: 1180px; margin: 0 auto; padding: calc(26px + env(safe-area-ins
   position: fixed; left: 12px; right: 12px; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 10;
   display: grid; grid-template-columns: 1fr 1fr 64px 1fr 1fr; align-items: center;
   background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--line); border-radius: 24px; box-shadow: 0 10px 30px rgba(23, 26, 44, .12); height: 66px;
+  border: 1px solid var(--line); border-radius: 24px; box-shadow: 0 10px 30px rgba(27, 53, 80, .12); height: 66px;
 }
 .bottom-nav > button:not(.nav-plus) {
   border: 0; background: none; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
@@ -164,7 +165,7 @@ main { max-width: 1180px; margin: 0 auto; padding: calc(26px + env(safe-area-ins
 .btn svg { width: 18px; height: 18px; }
 .btn:hover { border-color: var(--ink-3); }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
-.btn.light { background: #fff; border-color: #fff; color: #3a2fc0; }
+.btn.light { background: #fff; border-color: #fff; color: #22628f; }
 .btn.ghost { border-color: transparent; background: transparent; color: var(--accent); }
 .btn.danger { color: var(--red); }
 .btn.sm { padding: 5px 10px; font-size: 13px; }
@@ -267,7 +268,7 @@ select.input:invalid, select.input.empty { color: var(--ink-3); }
   position: fixed; inset: 0; background: rgba(10, 15, 12, 0); z-index: 50; display: flex; align-items: flex-end; justify-content: center;
   transition: background-color .2s;
 }
-.backdrop.on { background: rgba(14, 16, 28, .45); }
+.backdrop.on { background: rgba(11, 30, 46, .45); }
 .backdrop.closing { pointer-events: none; }
 .sheet {
   background: var(--surface); width: 100%; max-width: 560px; max-height: 92vh; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; touch-action: pan-y;
@@ -353,7 +354,7 @@ input[type="date"].input::-webkit-datetime-edit { padding: 0; }
 .dash { display: grid; gap: 12px; }
 .hero {
   display: flex; align-items: center; gap: 18px; padding: 20px; border: 0; cursor: pointer;
-  background: linear-gradient(135deg, #5b4fe0 0%, #7a6cf0 60%, #9b8ff7 100%); color: #fff;
+  background: radial-gradient(circle at 104% -8%, rgba(120, 200, 167, .75) 0 30%, transparent 30.5%), linear-gradient(135deg, #2a6c9e 0%, #3a8cc0 55%, #4ba8c4 100%); color: #fff;
 }
 .hero h2 { color: #fff; font-size: 18px; margin-bottom: 4px; }
 .hero p { margin: 0; color: rgba(255, 255, 255, .88); font-size: 14px; }
@@ -363,7 +364,7 @@ input[type="date"].input::-webkit-datetime-edit { padding: 0; }
 .hero .ring circle:last-child { stroke: #fff; }
 .hero.section { cursor: default; }
 .hero .btn.light { margin-top: 12px; }
-@media (prefers-color-scheme: dark) { .hero { background: linear-gradient(135deg, #3a32a8 0%, #5047c4 60%, #6a60d8 100%); } }
+@media (prefers-color-scheme: dark) { .hero { background: radial-gradient(circle at 104% -8%, rgba(108, 195, 157, .45) 0 30%, transparent 30.5%), linear-gradient(135deg, #1d4a6f 0%, #2a6c98 55%, #2f8496 100%); } }
 .ring { position: relative; flex: none; display: grid; place-items: center; }
 .ring svg { position: absolute; inset: 0; }
 .ring circle:last-child { transition: stroke-dashoffset .6s cubic-bezier(.2, .8, .2, 1); }
