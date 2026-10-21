@@ -17,6 +17,7 @@
   const NUMS = ['horas', 'participantes', 'margen'];
   const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
   const LS_KEY = 'rumbo-datos-v1';
+  const BUILD = '20261020222913';
 
   const S = {
     data: Object.fromEntries(TABLES.map(t => [t, []])),
@@ -807,6 +808,7 @@
         <label class="btn" style="width:100%;display:block;text-align:center">Importar respaldo (JSON)<input type="file" accept="application/json,.json" data-change="import" hidden></label>
         ${S.mode === 'remote' ? `<p class="small muted">Sesión: ${esc(S.user?.email || '')}</p><button class="btn danger" style="width:100%" data-act="logout">Cerrar sesión</button>`
           : '<p class="small muted">Modo local. Para sincronizar entre el celular y el PC, completa config.js con los datos de Supabase.</p>'}
+        <p class="tiny muted" style="text-align:center">Versión ${esc(BUILD)}</p>
       </div>`);
   }
 
@@ -1075,6 +1077,23 @@
     if (e.target.dataset.input === 'buscar') { S.f.q = e.target.value; const l = $('#prog-list'); if (l) l.innerHTML = listaProgramas(); }
   });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+  // ───────────── Actualización (como Caudal) ─────────────
+  // Al abrir la app o volver a ella, compara la versión publicada con la que está corriendo; si cambió, recarga una vez.
+  async function checkVersion() {
+    try {
+      const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).v;
+      if (v && v !== BUILD) {
+        let last = 0; try { last = +sessionStorage.getItem('rumbo.reloaded') || 0; } catch (e) { /* sin almacenamiento */ }
+        if (Date.now() - last > 60000 && !isOpen()) {
+          try { sessionStorage.setItem('rumbo.reloaded', String(Date.now())); } catch (e) { /* sin almacenamiento */ }
+          location.reload();
+        }
+      }
+    } catch (e) { /* sin conexión: sigue con la versión actual */ }
+  }
+  checkVersion();
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkVersion(); });
 
   // ───────────── Arranque ─────────────
   async function start() {
