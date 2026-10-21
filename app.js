@@ -27,7 +27,7 @@
   const TIPO_CM_LARGO = { 1: 'Cursos y cursos especializados (certificaciones)', 2: 'Talleres', 3: 'Diplomados', 4: 'Seminarios, congresos o simposios', 5: 'Otro' };
   const PLATAFORMAS = ['Moodle El Bosque', 'Plataforma del cliente', 'Zoom', 'Teams', 'Presencial', 'Otra'];
   const MESES_CM = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
-  const BUILD = '20261021054501';
+  const BUILD = '20261021060359';
 
   const S = {
     data: Object.fromEntries(TABLES.map(t => [t, []])),
@@ -481,14 +481,13 @@
         <div class="brand"><span class="brand-mark">${ICON.flag}</span>Rumbo</div>
         <button class="btn primary side-new" data-act="nuevo">${ICON.plus}<span>Nuevo programa</span></button>
         <nav class="side-nav">${nb('inicio', 'Inicio', ICON.home)}${nb('hoy', 'Mi día', ICON.sun)}${nb('calendario', 'Calendario', ICON.cal)}${nb('programas', 'Programas', ICON.prog)}${nb('mas', 'Más', ICON.more)}</nav>
-        <button class="side-cap" data-act="captura">${ICON.note}<span>Registro rápido</span></button>
+        <button class="side-cap" data-act="acciones">${ICON.plus}<span>Agregar o registrar</span></button>
       </aside>
       <main>${body}</main>
       <nav class="bottom-nav">
-        ${nb('inicio', 'Inicio', ICON.home)}${nb('hoy', 'Mi día', ICON.sun)}
-        <button class="nav-plus" data-act="captura" aria-label="Registro rápido">${ICON.plus}</button>
-        ${nb('calendario', 'Calendario', ICON.cal)}${nb('programas', 'Programas', ICON.prog)}
-      </nav>`;
+        ${nb('inicio', 'Inicio', ICON.home)}${nb('hoy', 'Mi día', ICON.sun)}${nb('calendario', 'Calendario', ICON.cal)}${nb('programas', 'Programas', ICON.prog)}${nb('mas', 'Más', ICON.more)}
+      </nav>
+      <button class="fab" data-act="acciones" aria-label="Agregar">${ICON.plus}</button>`;
   }
 
   function viewLogin() {
@@ -1779,16 +1778,18 @@
     const activos = S.data.programas.filter(p => p.estado === 'activo').sort((a, b) => nombreProg(a).localeCompare(nombreProg(b)));
     const actual = pre.programa_id || (S.view.name === 'programa' ? S.view.id : '');
     const dia = S.view.name === 'hoy' && S.dia ? S.dia : today();
-    const tipo = pre.tipo || 'tarea';
+    const tipo = pre.tipo || 'tarea', rec = !!pre.recordatorio, fijo = !!pre.tipo && !pre.texto;
+    const titulos = { tarea: 'Tarea', esperando: 'Seguimiento', avance: 'Avance', nota: 'Nota' };
+    const horaSig = (() => { const d = new Date(); d.setMinutes(0); d.setHours(d.getHours() + 1); return `${pad(d.getHours())}:00`; })();
     modal(`<form data-form="captura">
-      ${sheetHead('Registro rápido')}
-      <p class="small muted" style="margin-top:-6px">Escríbelo como lo dirías. Rumbo reconoce el programa, la fecha, la hora y de quién esperas algo. También puedes dictar con el micrófono del teclado.</p>
-      ${fld('Qué pasó o qué hay que hacer', `<textarea class="input" name="texto" rows="3" required autofocus data-input="captura" placeholder="Ej.: Ya llegó el acta del consejo de Solventum. O: Llamar al cliente de Baxter el jueves 3 pm"></textarea>`)}
+      ${sheetHead(rec ? 'Recordatorio' : pre.texto ? 'Registro rápido' : titulos[tipo] || 'Registro rápido')}
+      <p class="small muted" style="margin-top:-6px">${fijo ? 'Escríbelo como lo dirías: Rumbo reconoce el programa, la fecha y la hora.' : 'Escríbelo como lo dirías. Rumbo reconoce el programa, la fecha, la hora y de quién esperas algo. También puedes dictar con el micrófono del teclado.'}</p>
+      ${fld(rec ? 'Qué te recuerdo' : { esperando: 'Qué esperas y de quién', avance: 'Qué se cumplió', nota: 'Nota' }[fijo ? tipo : ''] || 'Qué pasó o qué hay que hacer', `<textarea class="input" name="texto" rows="3" required autofocus data-input="captura" placeholder="Ej.: Ya llegó el acta del consejo de Solventum. O: Llamar al cliente de Baxter el jueves 3 pm"></textarea>`)}
       <div class="entendi" id="entendi" hidden></div>
       ${IA.on ? `<button type="button" class="btn sm ia-btn" data-act="ia-captura">${ICON.spark}<span>Ordenar con IA</span></button>` : ''}
-      ${fld('Tipo', seg('tipo', CAP_TIPOS, tipo))}
+      <div${fijo ? ' hidden' : ''}>${fld('Tipo', seg('tipo', CAP_TIPOS, tipo))}</div>
       ${fld('Programa', `<select class="input" name="programa_id" data-change="cap-prog">${opts(activos.map(p => [p.id, nombreProg(p)]), actual, 'Ninguno, tarea personal')}</select>`)}
-      <div class="two">${fld('Para el', inp('plan_fecha', dia, 'type="date"'), 'tarea')}${fld('Hora <span class="muted">(opcional)</span>', inp('hora', '', 'type="time"'), 'tarea')}</div>
+      <div class="two">${fld(rec ? 'Día' : 'Para el', inp('plan_fecha', dia, 'type="date"'), 'tarea')}${fld(rec ? 'Hora' : 'Hora <span class="muted">(opcional)</span>', inp('hora', rec ? horaSig : '', `type="time"${rec ? ' required' : ''}`), 'tarea')}</div>
       <div class="two">${fld('Esperando a', `<select class="input" name="esperando_a">${opts(ACTORES.filter(a => a !== 'Yo'), 'Cliente')}</select>`, 'esperando')}
         ${fld('Hacer seguimiento el', inp('fecha_seguimiento', addDays(today(), 3), 'type="date"'), 'esperando')}</div>
       ${fld('Paso que se cumplió', `<select class="input" name="hecho_id">${opcionesPaso(byId('programas', actual))}</select>`, 'avance')}
@@ -1796,8 +1797,26 @@
       <p class="tiny muted" data-show="nota avance">Queda en la bitácora del programa.</p>
       <div class="sheet-actions"><button type="button" class="btn" data-act="close">Cancelar</button><button class="btn primary">Guardar</button></div>
     </form>`);
-    const f = $('#modal-root form'); f._tocado = new Set(); applyShow(f, tipo);
+    const f = $('#modal-root form'); f._tocado = new Set(pre.tipo && !pre.texto ? ['tipo'] : []); if (rec) f._tocado.add('hora'); applyShow(f, tipo);
     if (pre.texto) { f.texto.value = pre.texto; aplicarEntendido(f); }
+  }
+  // Botón principal: un solo lugar para todo lo que se registra
+  function menuAcciones() {
+    const p = S.view.name === 'programa' ? byId('programas', S.view.id) : null;
+    const op = (act, icon, l, sub, extra = '') => `<button class="acc" data-act="${act}"${extra}><span class="acc-ic">${icon}</span><b>${l}</b><small>${sub}</small></button>`;
+    modal(`<div class="acciones">
+      ${sheetHead('Agregar')}
+      ${p ? `<p class="small muted acc-ctx">${ICON.folder}<span class="ellipsis">En ${esc(nombreProg(p))}</span></p>` : ''}
+      <form class="acc-libre" data-form="acc-libre"><input class="input" name="texto" autocomplete="off" placeholder="Escribe o dicta lo que pasó o lo que hay que hacer"><button class="btn primary" aria-label="Continuar">${ICON.next}</button></form>
+      <div class="acc-grid">
+        ${op('acc', ICON.check, 'Tarea', 'Algo por hacer', ' data-t="tarea"')}
+        ${op('acc', ICON.bell, 'Recordatorio', 'Con día y hora', ' data-t="recordatorio"')}
+        ${op('acc', ICON.wait, 'Seguimiento', 'Espero algo de alguien', ' data-t="esperando"')}
+        ${op('acc', ICON.flag, 'Avance', 'Algo se cumplió', ` data-t="avance"`)}
+        ${op('acc', ICON.note, 'Nota', 'Para la bitácora', ' data-t="nota"')}
+        ${op('acc', ICON.prog, 'Programa', 'Nuevo, o desde un correo', ' data-t="programa"')}
+      </div>
+    </div>`);
   }
   // Llena los campos con lo que entendió del texto, sin pisar lo que cambiaste a mano
   function aplicarEntendido(f) {
@@ -2181,6 +2200,16 @@
     tab(el) { S.view.tab = el.dataset.tab; history.replaceState(null, '', `#/programa/${S.view.id}/${S.view.tab}`); render(); },
     menu: menuMas,
     avance: el => formAvance(byId('programas', el.dataset.id)),
+    acciones: () => menuAcciones(),
+    acc(el) {
+      const t = el.dataset.t, p = S.view.name === 'programa' ? byId('programas', S.view.id) : null;
+      closeModal();
+      setTimeout(() => {
+        if (t === 'programa') return formPrograma();
+        if (t === 'avance' && p) return formAvance(p);
+        formCaptura({ tipo: t === 'recordatorio' ? 'tarea' : t, recordatorio: t === 'recordatorio' });
+      }, 200);
+    },
     'prog-texto'(el) {
       const f = el.closest('form'), d = extraerPrograma(f._texto.value);
       if (!Object.keys(d).length) { toast('No encontré datos en el texto'); return; }
@@ -2337,6 +2366,7 @@
 
   // ───────────── Formularios ─────────────
   const FORMS = {
+    async 'acc-libre'(d) { const t = (d.texto || '').trim(); closeModal(); setTimeout(() => t ? formCaptura({ texto: t }) : formCaptura(), 200); },
     async login(d) {
       const msg = $('#login-msg'); msg.textContent = '';
       const { data, error } = await sb.auth.signInWithPassword({ email: d.email.trim(), password: d.password });
@@ -2620,6 +2650,7 @@
     const k = e.key.toLowerCase(), tabs = { 1: 'inicio', 2: 'hoy', 3: 'calendario', 4: 'programas' };
     if (k === 'n') { e.preventDefault(); formPrograma(); }
     else if (k === 'c') { e.preventDefault(); formCaptura(); }
+    else if (k === 'a' || k === '+') { e.preventDefault(); menuAcciones(); }
     else if (k === 'r') { e.preventDefault(); go('revision'); }
     else if (k === '/') { e.preventDefault(); go('programas'); setTimeout(() => { const q = $('[data-input="buscar"]'); if (q) q.focus(); }, 50); }
     else if (tabs[k]) { e.preventDefault(); go(tabs[k]); }
