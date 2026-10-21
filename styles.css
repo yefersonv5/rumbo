@@ -88,7 +88,14 @@ h3 { font-size: 15px; font-weight: 650; color: var(--ink); }
 svg { flex: none; }
 
 /* Estructura: barra inferior en el celular, barra lateral en el PC */
-main { max-width: 1180px; margin: 0 auto; padding: calc(14px + env(safe-area-inset-top)) 16px 16px; }
+main { max-width: 1180px; margin: 0 auto; padding: calc(26px + env(safe-area-inset-top)) 16px 16px; }
+/* Franja sólida detrás de la barra de estado del iPhone: evita que el desenfoque del borde superior
+   caiga sobre la fecha y los títulos, y tapa el contenido al desplazarse (como una app nativa). */
+.statusbar-cover {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 30; pointer-events: none;
+  height: calc(env(safe-area-inset-top) + 10px);
+  background: linear-gradient(to bottom, var(--bg) 0, var(--bg) calc(100% - 10px), color-mix(in srgb, var(--bg) 0%, transparent) 100%);
+}
 .side { display: none; }
 .brand { font-weight: 750; font-size: 18px; letter-spacing: -.02em; display: flex; align-items: center; gap: 10px; }
 .brand-mark { width: 34px; height: 34px; border-radius: 11px; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; }
