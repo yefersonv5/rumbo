@@ -9,6 +9,8 @@ sed -i -E "s/const BUILD = '[0-9]+';/const BUILD = '$V';/" app.js
 sed -i -E "s/\?v=[0-9]+/?v=$V/g" index.html sw.js
 sed -i -E "s/const CACHE = 'rumbo-[^']+';/const CACHE = 'rumbo-$V';/" sw.js
 git add -A
-git commit -qm "${1:-Actualización} (versión $V)"
+MSG="${1:-Actualización}"
+SUBJ="${MSG%%$'\n'*}"; REST="${MSG#"$SUBJ"}"
+git commit -qm "$SUBJ (versión $V)$REST"
 git push -q
 echo "Publicada la versión $V"
