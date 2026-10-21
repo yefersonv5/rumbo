@@ -60,7 +60,8 @@ html, body { margin: 0; }
 /* Comportamiento de app (igual que Caudal): sin zoom por doble toque, sin agrandar texto, sin destello al tocar */
 html { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body { -webkit-tap-highlight-color: transparent; overflow-x: clip; }
-html, body { overscroll-behavior-x: none; }
+html, body { overscroll-behavior-x: none; max-width: 100%; overflow-x: hidden; }
+main { overflow-x: clip; }
 .backdrop { touch-action: none; }
 .backdrop .sheet { touch-action: pan-y; }
 /* En el iPhone, un campo con letra menor a 16 px hace zoom al tocarlo: se fija en 16 px */
@@ -385,12 +386,14 @@ input[type="date"].input::-webkit-datetime-edit { padding: 0; }
 .qa span { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow); color: var(--accent); }
 .qa:nth-child(2) span { color: var(--c2); } .qa:nth-child(3) span { color: var(--c1); } .qa:nth-child(4) span { color: var(--c3); }
 .qa svg { width: 22px; height: 22px; }
-.dash-cols { display: grid; gap: 0 20px; }
+.dash-cols { display: grid; gap: 0 20px; grid-template-columns: minmax(0, 1fr); }
+.dash { grid-template-columns: minmax(0, 1fr); }
+.dash > *, .dash-cols > *, .cal-layout > * { min-width: 0; }
 @media (min-width: 1000px) {
-  .dash { grid-template-columns: 1.3fr 1fr; align-items: stretch; }
+  .dash { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); align-items: stretch; }
   .dash .hero { grid-row: span 2; }
   .dash .quick { grid-column: 1 / -1; }
-  .dash-cols { grid-template-columns: 1.2fr 1fr; }
+  .dash-cols { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); }
 }
 .chart { position: relative; touch-action: pan-y; }
 .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
@@ -427,7 +430,7 @@ input[type="date"].input::-webkit-datetime-edit { padding: 0; }
 
 /* ───── Calendario ───── */
 .cal-layout { display: grid; gap: 16px; }
-@media (min-width: 1000px) { .cal-layout { grid-template-columns: 1.1fr 1fr; align-items: start; } }
+@media (min-width: 1000px) { .cal-layout { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: start; } }
 .cal-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .cal-top b { font-size: 16px; }
 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
