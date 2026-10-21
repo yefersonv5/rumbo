@@ -49,6 +49,9 @@ html, body { margin: 0; }
 /* Comportamiento de app (igual que Caudal): sin zoom por doble toque, sin agrandar texto, sin destello al tocar */
 html { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body { -webkit-tap-highlight-color: transparent; overflow-x: clip; }
+html, body { overscroll-behavior-x: none; }
+.backdrop { touch-action: none; }
+.backdrop .sheet { touch-action: pan-y; }
 /* En el iPhone, un campo con letra menor a 16 px hace zoom al tocarlo: se fija en 16 px */
 @media (pointer: coarse) { input, select, textarea, .input { font-size: max(16px, 1em); } }
 .topbar, .bottom-nav, .tabs, .chips, .stepper, .pill, .btn, .chip, .check { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
@@ -229,7 +232,7 @@ select.input:invalid, select.input.empty { color: var(--ink-3); }
 .backdrop.on { background: rgba(10, 15, 12, .45); }
 .backdrop.closing { pointer-events: none; }
 .sheet {
-  background: var(--surface); width: 100%; max-width: 560px; max-height: 92vh; overflow-y: auto; overscroll-behavior: contain;
+  background: var(--surface); width: 100%; max-width: 560px; max-height: 92vh; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; touch-action: pan-y;
   border-radius: 22px 22px 0 0; padding: 8px 18px calc(18px + env(safe-area-inset-bottom));
   transform: translateY(100%); transition: transform .3s cubic-bezier(.2, .8, .2, 1);
 }
@@ -254,7 +257,9 @@ main.navback { animation: navback .22s ease-out; }
 .sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
 .field { margin-bottom: 12px; }
 .field label { display: block; font-size: 12.5px; font-weight: 600; color: var(--ink-2); margin-bottom: 4px; }
-.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+.two > *, .field, .field > * { min-width: 0; }
+select.input { text-overflow: ellipsis; white-space: nowrap; overflow: hidden; }
 .sheet-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; flex-wrap: wrap; }
 .sheet-actions .left { margin-right: auto; }
 .choice { display: grid; gap: 8px; }

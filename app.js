@@ -17,7 +17,7 @@
   const NUMS = ['horas', 'participantes', 'margen'];
   const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
   const LS_KEY = 'rumbo-datos-v1';
-  const BUILD = '20261020222913';
+  const BUILD = '20261020223431';
 
   const S = {
     data: Object.fromEntries(TABLES.map(t => [t, []])),
