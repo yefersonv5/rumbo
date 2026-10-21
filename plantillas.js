@@ -2,7 +2,8 @@
 // La app las carga en la base la primera vez y las actualiza cuando sube la versión.
 //
 // Cada paso: { f: fase, t: título, r: responsable (cargo, nunca nombre propio),
-//   ref: 'inicio' | 'fin' | 'mitad' | 'v20' (ventana del 20 al 30 del mes después del cierre) | null, d: días desde la referencia,
+//   ref: 'inicio' | 'fin' | 'mitad' | 'sesion' (primera sesión de cierre financiero registrada, al menos 10 días después del fin)
+//        | 'v20' (ventana del 20 al 30 del mes, después de la sesión de cierre) | null, d: días desde la referencia,
 //   e: esencial (define fase actual y semáforo), av: avisar ese día a las 8:00 a. m.,
 //   c: condición ('nuevo' | 'cohorte' | 'virtual' | 'presencial'), rep: { cada, hastaRef, hasta } repetir cada N días, k: clave especial }
 
@@ -27,10 +28,11 @@
     P('Cierre financiero', 'Confirmar que todos los docentes cobraron', 'Yo', 'fin', 0, { av: true }),
     P('Cierre financiero', 'Informe detallado de ingresos (Sala o, si no cuadra, Finanzas)', 'Finanzas', 'fin', 3),
     P('Cierre financiero', 'Conciliar gastos con la asistente y registrar las órdenes de compra en el presupuesto', 'Asistente administrativa', 'fin', 5),
-    P('Cierre financiero', 'Enviar a Presupuestos el cuadro de cierre (programa, orden interna, fechas, abierto o cerrado, ingresos), 8 días antes de la sesión', 'Yo', 'fin', 7, { av: true }),
-    P('Cierre financiero', 'Cierre financiero en la sesión con Presupuestos', 'Presupuestos', 'fin', 15),
-    P('Cierre financiero', 'Enviar el documento de cierre al gestor de facultad, al director y al decano, con copia a jefes y equipo EC', 'Yo', 'fin', 16),
-    P('Cierre financiero', 'Registro en el Cuadro Maestro', 'Yo', 'fin', 16),
+    P('Cierre financiero', 'Avisar a la secretaría de la división que este programa queda listo para cerrar', 'Secretaría de la división', 'sesion', -10, { e: false }),
+    P('Cierre financiero', 'Enviar a Presupuestos el cuadro de cierre (programa, orden interna, fechas, abierto o cerrado, ingresos), 8 días antes de la sesión', 'Yo', 'sesion', -8, { av: true }),
+    P('Cierre financiero', 'Cierre financiero en la sesión con Presupuestos', 'Presupuestos', 'sesion', 0, { av: true }),
+    P('Cierre financiero', 'Enviar el documento de cierre al gestor de facultad, al director y al decano, con copia a jefes y equipo EC', 'Yo', 'sesion', 1),
+    P('Cierre financiero', 'Registro en el Cuadro Maestro', 'Yo', 'sesion', 1),
   ];
   const LIQUIDACION = [
     P('Liquidación', 'Solicitar a la asistente el montaje de dirección y coordinación, con el resumen del cierre (ventana del 20 al 30)', 'Yo', 'v20', 0, { av: true }),
@@ -38,7 +40,7 @@
   ];
 
   window.PLANTILLAS = {
-    version: 2,
+    version: 3,
     rutas: [
       {
         clave: 'abierta', nombre: 'Oferta abierta', orden: 3,

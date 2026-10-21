@@ -2,7 +2,7 @@
 (function () {
   // ───────────── Constantes ─────────────
   const CFG = window.RUMBO_CONFIG || {};
-  const TABLES = ['rutas', 'modulos', 'plantilla_items', 'entidades', 'contactos', 'programas', 'items', 'bitacora', 'documentos', 'facturacion'];
+  const TABLES = ['rutas', 'modulos', 'plantilla_items', 'entidades', 'contactos', 'programas', 'items', 'bitacora', 'documentos', 'facturacion', 'sesiones_cierre'];
   const ESTADOS_ITEM = { pendiente: 'Pendiente', en_curso: 'En curso', esperando: 'Esperando', hecho: 'Hecho', no_aplica: 'No aplica' };
   const ESTADOS_PROG = { activo: 'Activo', pausa: 'En pausa', cerrado: 'Cerrado', perdido: 'Perdido' };
   // Responsables por cargo (nunca nombres propios)
@@ -27,7 +27,7 @@
   const TIPO_CM_LARGO = { 1: 'Cursos y cursos especializados (certificaciones)', 2: 'Talleres', 3: 'Diplomados', 4: 'Seminarios, congresos o simposios', 5: 'Otro' };
   const PLATAFORMAS = ['Moodle El Bosque', 'Plataforma del cliente', 'Zoom', 'Teams', 'Presencial', 'Otra'];
   const MESES_CM = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
-  const BUILD = '20261021000729';
+  const BUILD = '20261021001424';
 
   const S = {
     data: Object.fromEntries(TABLES.map(t => [t, []])),
@@ -285,12 +285,22 @@
     if (d < 20) x.setDate(20); else if (d > 30) { x.setDate(1); x.setMonth(x.getMonth() + 1); x.setDate(20); }
     return isoOf(x);
   }
+  // Sesión de cierre financiero: la primera registrada que caiga al menos 10 días después del fin
+  // (tiempo para el informe de ingresos y la conciliación). Si no hay sesiones registradas, 15 días después del fin.
+  function sesionCierre(p) {
+    const fin = p.fecha_fin || p.fecha_inicio;
+    if (!fin) return null;
+    const min = addDays(fin, 10);
+    const s = S.data.sesiones_cierre.map(x => x.fecha).filter(f => f >= min).sort()[0];
+    return s || addDays(fin, 15);
+  }
   function calcFecha(p, ref, rel) {
     if (!ref || rel === null || rel === undefined) return null;
     const ini = p.fecha_inicio, fin = p.fecha_fin || p.fecha_inicio, n = Number(rel);
     if (ref === 'inicio') return ini ? addDays(ini, n) : null;
     if (ref === 'mitad') return ini && fin ? addDays(ini, Math.round(diffDays(fin, ini) / 2) + n) : null;
-    if (ref === 'v20') return fin ? addDays(ventana20(addDays(fin, 16)), n) : null;
+    if (ref === 'sesion') { const x = sesionCierre(p); return x ? addDays(x, n) : null; }
+    if (ref === 'v20') { const x = sesionCierre(p); return x ? addDays(ventana20(addDays(x, 1)), n) : null; }
     if (!fin) return null;
     let f = addDays(fin, n);
     // Programas cortos: lo que va "un mes antes del fin" no puede caer antes del inicio; se corre a una semana antes del fin.
@@ -824,6 +834,7 @@
       else if (abierto(i)) add(i.plan_fecha || i.fecha_limite, { k: 'paso', i });
       else if (i.estado === 'hecho') add(i.fecha_hecho, { k: 'hecho', i });
     });
+    S.data.sesiones_cierre.forEach(x => add(x.fecha, { k: 'sesion', x }));
     S.data.programas.forEach(p => {
       if (p.estado !== 'activo') return;
       add(p.fecha_inicio, { k: 'inicio', p });
@@ -843,15 +854,16 @@
     for (let d = 1; d <= dias; d++) {
       const iso = `${y}-${pad(m)}-${pad(d)}`, e = (ev[iso] || []).filter(x => x.k !== 'hecho');
       const venc = e.some(x => (x.k === 'paso' || x.k === 'seg') && iso < t);
-      const marcas = [...new Set(e.map(x => x.k === 'inicio' || x.k === 'fin' ? 'prog' : venc ? 'venc' : x.k))].slice(0, 3);
+      const marcas = [...new Set(e.map(x => x.k === 'inicio' || x.k === 'fin' || x.k === 'sesion' ? 'prog' : venc ? 'venc' : x.k))].slice(0, 3);
       celdas += `<button class="cd ${iso === t ? 'today' : ''} ${iso === S.cal.dia ? 'sel' : ''}" data-act="cal-dia" data-d="${iso}" aria-label="${d}${e.length ? ', ' + plural(e.length, 'evento') : ''}">
         <span>${d}</span><i>${marcas.map(c => `<em class="mk ${c}"></em>`).join('')}</i></button>`;
     }
-    const lista = (ev[S.cal.dia] || []).sort((a, b) => ['inicio', 'fin', 'paso', 'seg', 'hecho'].indexOf(a.k) - ['inicio', 'fin', 'paso', 'seg', 'hecho'].indexOf(b.k));
+    const lista = (ev[S.cal.dia] || []).sort((a, b) => ['sesion', 'inicio', 'fin', 'paso', 'seg', 'hecho'].indexOf(a.k) - ['sesion', 'inicio', 'fin', 'paso', 'seg', 'hecho'].indexOf(b.k));
     const dSel = parse(S.cal.dia).toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' });
     const filaProg = (p, txt) => `<div class="li" data-act="open" data-id="${p.id}"><span class="cal-bar prog"></span>
       <div class="grow"><div class="title ellipsis">${txt}: ${esc(nombreProg(p))}</div><div class="sub">${esc(empresaTxt(p))} · ${esc(faseActual(p))}</div></div></div>`;
-    const cuerpo = lista.map(x => x.k === 'inicio' ? filaProg(x.p, 'Inicia') : x.k === 'fin' ? filaProg(x.p, 'Termina') : itemRow(x.i)).join('');
+    const filaSesion = () => `<div class="li" data-act="nav" data-to="mas"><span class="cal-bar prog"></span><div class="grow"><div class="title">Sesión de cierre financiero</div><div class="sub">Con Presupuestos</div></div></div>`;
+    const cuerpo = lista.map(x => x.k === 'sesion' ? filaSesion() : x.k === 'inicio' ? filaProg(x.p, 'Inicia') : x.k === 'fin' ? filaProg(x.p, 'Termina') : itemRow(x.i)).join('');
     // Resumen del mes
     const delMes = Object.entries(ev).filter(([d]) => d.startsWith(S.cal.mes)).flatMap(([, e]) => e);
     const nPasos = delMes.filter(x => x.k === 'paso').length, nSeg = delMes.filter(x => x.k === 'seg').length, nIni = delMes.filter(x => x.k === 'inicio').length, nHechos = delMes.filter(x => x.k === 'hecho').length;
@@ -862,7 +874,7 @@
             <b class="cap">${esc(titulo)}</b><button class="icon-btn" data-act="cal-mes" data-n="1" aria-label="Mes siguiente">${ICON.next}</button></div>
           <div class="cal-grid wk">${['L', 'M', 'M', 'J', 'V', 'S', 'D'].map(d => `<span>${d}</span>`).join('')}</div>
           <div class="cal-grid">${celdas}</div>
-          <div class="cal-key"><span><em class="mk paso"></em>Paso</span><span><em class="mk seg"></em>Seguimiento</span><span><em class="mk venc"></em>Vencido</span><span><em class="mk prog"></em>Inicio o fin</span></div>
+          <div class="cal-key"><span><em class="mk paso"></em>Paso</span><span><em class="mk seg"></em>Seguimiento</span><span><em class="mk venc"></em>Vencido</span><span><em class="mk prog"></em>Inicio, fin o cierre</span></div>
         </div>
         <div>
           <div class="kpis kpis-3">
@@ -927,6 +939,25 @@
       <div id="prog-list" class="section">${listaProgramas()}</div>`;
   }
 
+  // Sesiones de cierre financiero con Presupuestos (cada 15 días)
+  function cardSesiones() {
+    const t = today(), ses = [...S.data.sesiones_cierre].sort((a, b) => a.fecha.localeCompare(b.fecha));
+    const prox = ses.filter(x => x.fecha >= t), pasadas = ses.filter(x => x.fecha < t).slice(-2);
+    const fila = x => {
+      const progs = S.data.programas.filter(p => p.estado === 'activo' && itemsDe(p.id).some(i => i.dias_ref === 'sesion' && i.dias_rel === 0 && i.fecha_limite === x.fecha && abierto(i)));
+      return `<div class="li" style="cursor:default"><span class="kpi-ic ${x.fecha < t ? '' : 'blue'}" style="width:34px;height:34px">${ICON.cal}</span>
+        <div class="grow"><div class="title">${esc(fmtDate(x.fecha))} <span class="muted small">· ${relDate(x.fecha)}</span></div>
+        <div class="sub">${progs.length ? 'Cierras: ' + progs.map(p => esc(nombreProg(p))).join(', ') : 'Sin programas para cerrar'} · cuadro el ${fmtDate(addDays(x.fecha, -8))}</div></div>
+        <button class="icon-btn" data-act="ses-del" data-id="${x.id}" aria-label="Eliminar sesión">${ICON.trash}</button></div>`;
+    };
+    return `<div class="card section">
+      <div class="pad" style="padding-bottom:8px"><h2>Sesiones de cierre financiero</h2>
+        <p class="small muted" style="margin:4px 0 10px">Registra las fechas que informa la secretaría de la división. Cada programa se cierra en la primera sesión al menos 10 días después de terminar; el cuadro va 8 días antes.</p>
+        <form class="row" data-form="sesion"><input class="input" type="date" name="fecha" required style="flex:1"><button class="btn primary sm">${ICON.plus}<span>Agregar</span></button></form></div>
+      <div class="list">${[...pasadas, ...prox].map(fila).join('') || '<div class="empty">Sin sesiones registradas. Mientras tanto, Rumbo calcula el cierre 15 días después del fin.</div>'}</div>
+    </div>`;
+  }
+
   // ───────────── Más ─────────────
   function viewMas() {
     const row = (icon, l, act, extra = '', sub = '') => `<button class="li menu-li" data-act="${act}"${extra}><span class="kpi-ic violet">${icon}</span><div class="grow"><div class="title">${l}</div>${sub ? `<div class="sub">${sub}</div>` : ''}</div><span class="muted">${ICON.next}</span></button>`;
@@ -945,6 +976,7 @@
         ${row(ICON.download, 'Descargar respaldo', 'export-json', '', 'Copia completa en JSON')}
         <label class="li menu-li"><span class="kpi-ic violet">${ICON.upload}</span><div class="grow"><div class="title">Importar respaldo</div><div class="sub">Desde un archivo JSON</div></div><input type="file" accept="application/json,.json" data-change="import" hidden></label>
       </div>
+      ${cardSesiones()}
       ${avisosCard(false)}
       ${S.mode === 'remote' ? `<button class="btn danger section" style="width:100%" data-act="logout">${ICON.out}<span>Cerrar sesión</span></button>` : ''}
       <p class="tiny muted" style="text-align:center;margin-top:16px">Versión ${esc(BUILD)}</p>`;
@@ -1525,8 +1557,8 @@
     async 'dec-abre'(el) {
       const p = byId('programas', el.dataset.id), i = itemsDe(p.id).find(x => x.clave === 'decision_apertura' && abierto(x));
       if (i) await db.update('items', i.id, { estado: 'hecho', fecha_hecho: today() });
-      await db.update('programas', p.id, { estado_cm: 'Iniciado', estado: 'activo', actualizado: nowIso() });
-      await db.insert('bitacora', { programa_id: p.id, fecha: today(), tipo: 'Decisión', resumen: 'Se confirma la apertura del programa. Estado en el Cuadro Maestro: Iniciado.', proxima_accion: 'Enviar listado al director y bienvenida a los participantes.' });
+      await db.update('programas', p.id, { estado_cm: p.estado_cm === 'Aplazado' ? 'Proyección' : p.estado_cm, estado: 'activo', actualizado: nowIso() });
+      await db.insert('bitacora', { programa_id: p.id, fecha: today(), tipo: 'Decisión', resumen: 'Se confirma la apertura del programa. Pasará a Iniciado en el Cuadro Maestro el día del inicio.', proxima_accion: 'Enviar listado al director y bienvenida a los participantes.' });
       render(); toast('Apertura confirmada');
     },
     'dec-aplaza': el => formAplazar(byId('programas', el.dataset.id)),
@@ -1554,6 +1586,11 @@
       const ya = new Set(itemsDe(p.id).map(i => i.titulo.trim().toLowerCase()));
       const nuevos = generarItems(p, p.modulos || [], true).filter(i => !ya.has(i.titulo.trim().toLowerCase()));
       await db.insert('items', nuevos); await touch(p.id); render(); toast(`Checklist actualizado: ${plural(nuevos.length, 'paso')}`);
+    },
+    async 'ses-del'(el) {
+      if (!confirm('¿Eliminar esta sesión de cierre?')) return;
+      await db.remove('sesiones_cierre', el.dataset.id);
+      const n = await recalcularCierres(); render(); if (n) toast(`${plural(n, 'paso movido', 'pasos movidos')}`);
     },
     'av-on': () => avEnable(),
     'av-off': () => avDisable(),
@@ -1648,6 +1685,31 @@
     await entrar(r.data.user);
   };
 
+  // El día del inicio, el programa pasa a Iniciado en el Cuadro Maestro (si la apertura ya se confirmó o no requiere decisión).
+  async function iniciarProgramasDelDia() {
+    const t = today();
+    for (const p of S.data.programas.filter(x => x.estado === 'activo' && x.fecha_inicio && x.fecha_inicio <= t && ['Proyección', 'Negociación'].includes(x.estado_cm || 'Proyección'))) {
+      const dec = itemsDe(p.id).find(i => i.clave === 'decision_apertura');
+      if (dec && abierto(dec)) continue;
+      await db.update('programas', p.id, { estado_cm: 'Iniciado', actualizado: nowIso() });
+      await db.insert('bitacora', { programa_id: p.id, fecha: t, tipo: 'Decisión', resumen: `Inició el ${fmtDate(p.fecha_inicio)}. Estado en el Cuadro Maestro: Iniciado.`, proxima_accion: null });
+    }
+  }
+  // Cuando cambian las sesiones de cierre, se mueven los pasos de cierre y liquidación de los programas activos
+  async function recalcularCierres() {
+    let n = 0;
+    for (const p of S.data.programas.filter(x => x.estado === 'activo')) {
+      for (const i of itemsDe(p.id).filter(i => abierto(i) && (i.dias_ref === 'sesion' || i.dias_ref === 'v20'))) {
+        const f = calcFecha(p, i.dias_ref, i.dias_rel);
+        if (f && f !== i.fecha_limite) {
+          const patch = { fecha_limite: f };
+          if (i.recordar_at && !i.recordado_at && !i.hora) { const r = aRecordar(f, '08:00'); patch.recordar_at = new Date(r) > new Date() ? r : null; }
+          await db.update('items', i.id, patch); n++;
+        }
+      }
+    }
+    return n;
+  }
   async function recalcular(p) {
     let n = 0;
     for (const i of itemsDe(p.id).filter(i => abierto(i) && i.dias_ref)) {
@@ -1796,6 +1858,12 @@
       else await db.insert('facturacion', { ...row, programa_id: f.dataset.pid });
       await touch(f.dataset.pid); closeModal(); render();
     },
+    async sesion(d) {
+      if (!d.fecha) return;
+      if (S.data.sesiones_cierre.some(x => x.fecha === d.fecha)) { toast('Esa sesión ya está'); return; }
+      await db.insert('sesiones_cierre', { fecha: d.fecha, nota: null });
+      const n = await recalcularCierres(); render(); toast(n ? `Sesión agregada. ${plural(n, 'paso movido', 'pasos movidos')}` : 'Sesión agregada');
+    },
     async aplazar(d, f) {
       const p = byId('programas', f.dataset.id), antes = p.fecha_inicio;
       await db.update('programas', p.id, clean({ fecha_inicio: d.fecha_inicio, fecha_fin: d.fecha_fin || p.fecha_fin, estado_cm: 'Aplazado', estado: 'activo', actualizado: nowIso() }));
@@ -1921,6 +1989,7 @@
         await seedIfEmpty();
       }
       S.ready = true;
+      iniciarProgramasDelDia().then(() => render()).catch(fail);
       avState().then(() => { if (AV.on) render(); });
     } catch (err) {
       console.error(err);
