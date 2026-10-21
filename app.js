@@ -17,6 +17,7 @@
   const NUMS = ['horas', 'participantes', 'margen', 'porcentaje_aval'];
   const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
   const LS_KEY = 'rumbo-datos-v1';
+  const PUSH_PUB = 'BER3W2HDUB16BCx6dLPIRmEdxPjj8elhZyUornIHZG-ghd63drn0yYYC3LTQXqr9_jIZ5FVCteC3GstvoonQXDk';
   // Cuadro Maestro (hoja BD): valores fijos de la línea y listas cerradas
   const GESTOR = 'Yeferson Vargas González', LINEA = 'Salud y Farma';
   const ESTADOS_CM = ['Proyección', 'Negociación', 'Iniciado', 'Ejecutado', 'Aplazado', 'Cancelado'];
@@ -25,7 +26,7 @@
   const TIPO_CM_LARGO = { 1: 'Cursos y cursos especializados (certificaciones)', 2: 'Talleres', 3: 'Diplomados', 4: 'Seminarios, congresos o simposios', 5: 'Otro' };
   const PLATAFORMAS = ['Moodle El Bosque', 'Plataforma del cliente', 'Zoom', 'Teams', 'Presencial', 'Otra'];
   const MESES_CM = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
-  const BUILD = '20261020230822';
+  const BUILD = '20261020231840';
 
   const S = {
     data: Object.fromEntries(TABLES.map(t => [t, []])),
@@ -63,6 +64,11 @@
     if (n > 0 && n < 8) return `En ${n} d`;
     return fmtDate(s);
   };
+  // Hora: 'HH:MM' para mostrar en 12 h; recordatorios en hora de Colombia
+  const fmtHora = h => { if (!h) return ''; const [H, M] = h.slice(0, 5).split(':').map(Number); return `${((H + 11) % 12) + 1}:${pad(M)} ${H < 12 ? 'a. m.' : 'p. m.'}`; };
+  const aRecordar = (fecha, hora) => fecha && hora ? `${fecha}T${hora.slice(0, 5)}:00-05:00` : null;
+  const localDT = ts => { if (!ts) return ''; const d = new Date(ts); return `${isoOf(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+  const fmtRecordar = ts => { if (!ts) return ''; const d = new Date(ts), f = isoOf(d); return `${relDate(f)}, ${fmtHora(pad(d.getHours()) + ':' + pad(d.getMinutes()))}`; };
   const money = n => (n === null || n === undefined || n === '') ? '' : '$ ' + Math.round(Number(n)).toLocaleString('es-CO');
   const byDate = k => (a, b) => (a[k] || '9999').localeCompare(b[k] || '9999');
   const opts = (list, sel, empty) => (empty !== undefined ? `<option value="">${esc(empty)}</option>` : '') +
@@ -291,14 +297,17 @@
     upload: I('<path d="M12 20V9M7 14l5-5 5 5M5 4h14"/>'),
     out: I('<path d="M10 5H5v14h5M14 8l4 4-4 4M18 12H9"/>'),
     flag: I('<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>'),
+    sun: I('<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>'),
+    bell: I('<path d="M6 16V11a6 6 0 0112 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 004 0"/>'),
+    later: I('<path d="M5 12h12M13 7l5 5-5 5"/>'),
     check: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
   };
 
   // ───────────── Navegación ─────────────
-  const VISTAS = ['inicio', 'programas', 'calendario', 'mas', 'plantillas'];
+  const VISTAS = ['inicio', 'hoy', 'programas', 'calendario', 'mas', 'plantillas'];
   function routeFromHash() {
     const [n0, id, tab] = location.hash.replace(/^#\/?/, '').split('/');
-    const n = n0 === 'hoy' ? 'inicio' : n0;
+    const n = n0;
     if (n === 'programa' && id) S.view = { name: 'programa', id, tab: tab || 'checklist' };
     else if (VISTAS.includes(n)) S.view = { name: n };
     else S.view = { name: 'inicio' };
@@ -308,7 +317,7 @@
     if (location.hash !== h) location.hash = h;
     else { routeFromHash(); render(); }
   }
-  const ORDEN_VISTA = { inicio: 0, programas: 1, calendario: 2, mas: 3, plantillas: 4, programa: 5 };
+  const ORDEN_VISTA = { inicio: 0, hoy: 1, calendario: 2, programas: 3, mas: 4, plantillas: 5, programa: 6 };
   window.addEventListener('hashchange', () => {
     const antes = S.view.name;
     routeFromHash(); closeModal(); render(); window.scrollTo(0, 0);
@@ -332,6 +341,7 @@
     if (v === 'programas') body = viewProgramas();
     else if (v === 'programa') body = viewPrograma();
     else if (v === 'calendario') body = viewCalendario();
+    else if (v === 'hoy') body = viewHoy();
     else if (v === 'mas') body = viewMas();
     else if (v === 'plantillas') body = viewPlantillas();
     else body = viewInicio();
@@ -342,14 +352,14 @@
       <aside class="side">
         <div class="brand"><span class="brand-mark">${ICON.flag}</span>Rumbo</div>
         <button class="btn primary side-new" data-act="nuevo">${ICON.plus}<span>Nuevo programa</span></button>
-        <nav class="side-nav">${nb('inicio', 'Inicio', ICON.home)}${nb('programas', 'Programas', ICON.prog)}${nb('calendario', 'Calendario', ICON.cal)}${nb('mas', 'Más', ICON.more)}</nav>
+        <nav class="side-nav">${nb('inicio', 'Inicio', ICON.home)}${nb('hoy', 'Mi día', ICON.sun)}${nb('calendario', 'Calendario', ICON.cal)}${nb('programas', 'Programas', ICON.prog)}${nb('mas', 'Más', ICON.more)}</nav>
         <button class="side-cap" data-act="captura">${ICON.note}<span>Captura rápida</span></button>
       </aside>
       <main>${body}</main>
       <nav class="bottom-nav">
-        ${nb('inicio', 'Inicio', ICON.home)}${nb('programas', 'Programas', ICON.prog)}
+        ${nb('inicio', 'Inicio', ICON.home)}${nb('hoy', 'Mi día', ICON.sun)}
         <button class="nav-plus" data-act="captura" aria-label="Captura rápida">${ICON.plus}</button>
-        ${nb('calendario', 'Calendario', ICON.cal)}${nb('mas', 'Más', ICON.more)}
+        ${nb('calendario', 'Calendario', ICON.cal)}${nb('programas', 'Programas', ICON.prog)}
       </nav>`;
   }
 
@@ -378,6 +388,7 @@
   function kpi(icon, tone, valor, etiqueta, act) {
     return `<div class="card kpi"${act ? ` data-act="${act}" role="button"` : ''}><span class="kpi-ic ${tone}">${icon}</span><div><b>${valor}</b><span>${etiqueta}</span></div></div>`;
   }
+  const avatarBtn = () => `<button class="avatar sm" data-act="nav" data-to="mas" aria-label="Más opciones">${esc(nombreUsuario().slice(0, 1))}</button>`;
   const saludo = () => { const h = new Date().getHours(); return h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches'; };
   const nombreUsuario = () => 'Yeferson';
   const plural = (n, s, p) => `${n} ${n === 1 ? s : (p || s + 's')}`;
@@ -458,22 +469,25 @@
   }
 
   // ───────────── Inicio (tablero) ─────────────
-  function itemRow(i, showProg = true) {
+  function itemRow(i, showProg = true, acciones = '') {
     const p = byId('programas', i.programa_id), t = today();
-    const fecha = i.estado === 'esperando' ? i.fecha_seguimiento : i.fecha_limite;
+    const fecha = i.estado === 'esperando' ? i.fecha_seguimiento : (i.plan_fecha && (!i.fecha_limite || i.plan_fecha <= i.fecha_limite) ? i.plan_fecha : i.fecha_limite);
     let pill = '';
     if (abierto(i) && fecha) {
-      const cls = fecha < t ? 'red' : fecha <= addDays(t, 3) ? 'amber' : '';
+      const venc = (i.fecha_limite && i.fecha_limite < t) || (i.plan_fecha && i.plan_fecha < t);
+      const cls = venc || fecha < t ? 'red' : fecha <= addDays(t, 3) ? 'amber' : '';
       pill = `<span class="pill ${cls}">${i.estado === 'esperando' ? 'Seguir · ' : ''}${relDate(fecha)}</span>`;
     } else if (abierto(i) && i.estado === 'esperando') pill = '<span class="pill amber">Sin fecha</span>';
     else if (i.estado === 'hecho' && i.fecha_hecho) pill = `<span class="tiny muted">${fmtDate(i.fecha_hecho)}</span>`;
     const sub = [];
-    if (showProg && p) sub.push(esc(nombreProg(p)));
-    if (showProg) sub.push(esc(i.fase));
+    if (showProg) sub.push(p ? esc(nombreProg(p)) : '<span class="tag-t">Tarea</span>');
+    if (showProg && p && i.fase) sub.push(esc(i.fase));
+    if (i.hora && abierto(i)) sub.push(fmtHora(i.hora));
     if (i.estado === 'esperando') sub.push('Esperando a ' + esc(i.esperando_a || '…'));
     else if (i.responsable && i.responsable !== 'Yo') sub.push(esc(i.responsable));
     if (i.estado === 'en_curso') sub.push('En curso');
-    if (!i.esencial) sub.push('opcional');
+    if (p && !i.esencial) sub.push('opcional');
+    if (i.recordar_at && !i.recordado_at && abierto(i)) sub.push(`<span class="rec">${ICON.bell}${fmtRecordar(i.recordar_at)}</span>`);
     if (i.nota) sub.push('con nota');
     const cls = i.estado === 'hecho' ? 'done' : i.estado === 'no_aplica' ? 'na-row' : '';
     const chk = i.estado === 'hecho' ? 'on' : i.estado === 'no_aplica' ? 'na' : '';
@@ -481,7 +495,7 @@
       <button class="check ${chk}" data-act="toggle" data-id="${i.id}" aria-label="Marcar como hecho">${i.estado === 'hecho' ? ICON.check : i.estado === 'no_aplica' ? '–' : ''}</button>
       <div class="grow"><div class="title">${esc(i.titulo)}</div>${sub.length ? `<div class="sub">${sub.join(' · ')}</div>` : ''}</div>
       ${i.enlace ? `<a class="icon-btn" href="${esc(i.enlace)}" target="_blank" rel="noopener" data-act="noop" aria-label="Abrir enlace">${ICON.link}</a>` : ''}
-      ${pill}
+      ${acciones || pill}
     </div>`;
   }
   function seccion(titulo, html, n, vacio, extra = '') {
@@ -515,6 +529,17 @@
       ${fx ? `<span class="pill ${fx < t ? 'red' : fx <= addDays(t, 3) ? 'amber' : ''}">${relDate(fx)}</span>` : `<span class="dot ${semaforo(p)}"></span>`}
     </div>`;
   }
+  function tarjetaHoy() {
+    const t = today(), its = itemsVisibles();
+    const agenda = its.filter(i => abierto(i) && delDia(i, t));
+    const seg = its.filter(i => i.estado === 'esperando' && (!i.fecha_seguimiento || i.fecha_seguimiento <= t));
+    const sig = [...agenda].sort((a, b) => (a.hora || '99').localeCompare(b.hora || '99'))[0];
+    return `<div class="card today-card" data-act="nav" data-to="hoy" role="button">
+      <span class="kpi-ic amber">${ICON.sun}</span>
+      <div class="grow"><b>Mi día: ${agenda.length || seg.length ? `${plural(agenda.length, 'pendiente')}${seg.length ? ` y ${plural(seg.length, 'seguimiento')}` : ''}` : 'nada planeado'}</b>
+        <span class="small muted ellipsis">${sig ? `Siguiente: ${sig.hora ? fmtHora(sig.hora) + ' · ' : ''}${esc(sig.titulo)}` : 'Toca para organizar tu día'}</span></div>
+      <span class="muted">${ICON.next}</span></div>`;
+  }
   function viewInicio() {
     const t = today(), t30 = addDays(t, 30), t14 = addDays(t, -14);
     const fecha = new Date().toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -545,6 +570,7 @@
       <div class="grow"><div class="title ellipsis">${esc(nombreProg(p))}</div><div class="sub">${esc(entidadDe(p)?.nombre || 'Sin entidad')} · ${esc(faseActual(p))}</div></div>${extra}</div>`;
     const qa = (icon, l, act, extra = '') => `<button class="qa" data-act="${act}"${extra}><span>${icon}</span>${l}</button>`;
     return `${head}
+      ${tarjetaHoy()}
       <div class="dash">
         <div class="card hero" data-act="nav" data-to="programas" role="button">
           ${ring(pct, 92, 9)}
@@ -565,7 +591,7 @@
           <div class="grow"><span class="muted small">Cuadro Maestro</span><b style="font-size:16px">${incompletos.length ? `${plural(incompletos.length, 'programa')} con datos por completar` : 'Todo listo para exportar'}</b></div>
           <span class="muted">${ICON.next}</span></div>
         <div class="quick">
-          ${qa(ICON.plus, 'Nuevo programa', 'nuevo')}${qa(ICON.note, 'Captura', 'captura')}${qa(ICON.cal, 'Calendario', 'nav', ' data-to="calendario"')}${qa(ICON.download, 'Exportar', 'export-csv')}
+          ${qa(ICON.plus, 'Nuevo programa', 'nuevo')}${qa(ICON.note, 'Captura', 'captura')}${qa(ICON.sun, 'Mi día', 'nav', ' data-to="hoy"')}${qa(ICON.download, 'Exportar', 'export-csv')}
         </div>
       </div>
       <div class="dash-cols">
@@ -587,15 +613,130 @@
       </div>`;
   }
 
+  // ───────────── Mi día ─────────────
+  // Lo del día: lo planeado para ese día, lo que vence ese día y los seguimientos que tocan.
+  function itemsVisibles() {
+    const activos = new Set(S.data.programas.filter(p => p.estado === 'activo').map(p => p.id));
+    return S.data.items.filter(i => !i.programa_id || activos.has(i.programa_id));
+  }
+  const delDia = (i, d) => i.estado !== 'esperando' && (i.plan_fecha === d || (!i.plan_fecha && i.fecha_limite === d));
+  function viewHoy() {
+    const t = today();
+    if (!S.dia) S.dia = t;
+    const d = S.dia, esHoy = d === t;
+    const its = itemsVisibles();
+    const agenda = its.filter(i => delDia(i, d) && i.estado !== 'no_aplica')
+      .sort((a, b) => (abierto(b) - abierto(a)) || (a.hora || '99').localeCompare(b.hora || '99') || (a.created_at || '').localeCompare(b.created_at || ''));
+    const seguir = its.filter(i => i.estado === 'esperando' && (esHoy ? (!i.fecha_seguimiento || i.fecha_seguimiento <= d) : i.fecha_seguimiento === d));
+    const atrasado = esHoy ? its.filter(i => abierto(i) && i.estado !== 'esperando' &&
+      ((i.plan_fecha && i.plan_fecha < t) || (!i.plan_fecha && i.fecha_limite && i.fecha_limite < t))).sort(byDate('fecha_limite')) : [];
+    const hechasHoy = its.filter(i => i.estado === 'hecho' && i.fecha_hecho === d && !delDia(i, d)).length;
+    const total = agenda.length + seguir.length, hechos = agenda.filter(i => i.estado === 'hecho').length + hechasHoy;
+    const pct = (total + hechasHoy) ? Math.round(hechos * 100 / (total + hechasHoy)) : 0;
+    const quedan = agenda.filter(abierto).length + seguir.length;
+    // Sugeridos: el siguiente paso esencial de cada programa activo que todavía no está en tu agenda
+    const enAgenda = new Set([...agenda, ...atrasado, ...seguir].map(i => i.id));
+    const sugeridos = esHoy ? S.data.programas.filter(p => p.estado === 'activo').map(p => itemsOrdenados(p).find(i => abierto(i) && i.esencial && i.estado !== 'esperando'))
+      .filter(i => i && !enAgenda.has(i.id) && !(i.plan_fecha && i.plan_fecha > t)).slice(0, 5) : [];
+    // Semana para moverte entre días
+    const lunes = (() => { const x = parse(d); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return isoOf(x); })();
+    const semana = Array.from({ length: 7 }, (_, k) => addDays(lunes, k));
+    const dias = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+    const strip = semana.map((x, k) => {
+      const n = its.filter(i => abierto(i) && delDia(i, x)).length + its.filter(i => i.estado === 'esperando' && i.fecha_seguimiento === x).length;
+      return `<button class="wd ${x === d ? 'sel' : ''} ${x === t ? 'today' : ''}" data-act="dia" data-d="${x}"><span>${dias[k]}</span><b>${parse(x).getDate()}</b><i>${n ? '<em></em>' : ''}</i></button>`;
+    }).join('');
+    const mover = (i, label = 'Mañana') => `<div class="acts"><button class="mini" data-act="mover" data-id="${i.id}" data-d="${addDays(d, 1)}" aria-label="Pasar a mañana">${ICON.later}<span>${label}</span></button></div>`;
+    const traer = i => `<div class="acts"><button class="mini on" data-act="mover" data-id="${i.id}" data-d="${t}">Hoy</button><button class="mini" data-act="mover" data-id="${i.id}" data-d="${addDays(t, 1)}">Mañana</button></div>`;
+    const sumar = i => `<div class="acts"><button class="mini on" data-act="mover" data-id="${i.id}" data-d="${t}">${ICON.plus}<span>Hoy</span></button></div>`;
+    const titulo = esHoy ? 'Hoy' : relDate(d) === 'Mañana' ? 'Mañana' : parse(d).toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' });
+    // Agenda agrupada por momento del día
+    const grupo = (l, f) => { const g = agenda.filter(f); return g.length ? `<div class="slot">${l}</div>${g.map(i => itemRow(i, true, abierto(i) ? `${i.hora ? `<span class="hr">${fmtHora(i.hora)}</span>` : ''}${mover(i)}` : '')).join('')}` : ''; };
+    const h = i => i.hora || '';
+    const agendaHtml = agenda.length ? grupo('Mañana · antes de 12', i => abierto(i) && h(i) && h(i) < '12') + grupo('Tarde', i => abierto(i) && h(i) >= '12') +
+      grupo('Sin hora', i => abierto(i) && !h(i)) + grupo('Hecho', i => !abierto(i)) : '';
+    return `<div class="page-head"><div><p class="muted small cap" style="margin:0">${esc(parse(d).toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' }))}</p><h1 class="cap">${esc(titulo)}</h1></div>${avatarBtn()}</div>
+      <div class="week">${strip}</div>
+      <div class="dash-cols">
+        <div>
+          <div class="card day-card">
+            ${ring(pct, 64, 7)}
+            <div class="grow"><b>${quedan ? `Te ${quedan === 1 ? 'queda' : 'quedan'} ${plural(quedan, 'pendiente')}` : total ? 'Día completo' : 'Nada planeado'}</b>
+              <span class="small muted">${hechos ? plural(hechos, 'hecho', 'hechos') + (esHoy ? ' hoy' : '') + ' · ' : ''}${plural(seguir.length, 'seguimiento')}${atrasado.length ? ` · ${atrasado.length} atrasado${atrasado.length === 1 ? '' : 's'}` : ''}</span></div>
+          </div>
+          <form class="card quick-add" data-form="tarea-rapida" data-d="${d}">
+            <input name="titulo" placeholder="Agregar tarea para ${esHoy ? 'hoy' : esc(relDate(d).toLowerCase())}…" autocomplete="off" required>
+            <input name="hora" type="time" aria-label="Hora">
+            <button class="btn primary sm" aria-label="Agregar">${ICON.plus}</button>
+          </form>
+          ${atrasado.length ? seccion('Atrasado', atrasado.map(i => itemRow(i, true, traer(i))).join(''), atrasado.length) : ''}
+          ${seccion('Agenda', agendaHtml, agenda.length || undefined, esHoy ? 'Nada planeado todavía. Agrega tareas arriba o toma los sugeridos.' : 'Nada planeado para este día.')}
+          ${seguir.length ? seccion('Seguimientos', seguir.map(i => itemRow(i, true, mover(i, 'Luego'))).join(''), seguir.length) : ''}
+        </div>
+        <div>
+          ${sugeridos.length ? seccion('Sugeridos para hoy', sugeridos.map(i => itemRow(i, true, sumar(i))).join(''), undefined, '', '<span class="tiny muted">Siguiente paso de cada programa</span>') : ''}
+          ${avisosCard(true)}
+        </div>
+      </div>`;
+  }
+
+  // ───────────── Avisos (notificaciones push) ─────────────
+  const AV = { on: false, busy: false, msg: '' };
+  const pushCapable = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  const instalada = () => navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+  const b64u = x => { const p = '='.repeat((4 - x.length % 4) % 4), b = atob((x + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(b, c => c.charCodeAt(0)); };
+  async function avState() {
+    if (!pushCapable() || Notification.permission !== 'granted') { AV.on = false; return; }
+    try { const reg = await navigator.serviceWorker.ready; AV.on = !!(await reg.pushManager.getSubscription()); } catch (e) { AV.on = false; }
+  }
+  function avisosCard(compacta) {
+    if (AV.on && compacta) return '';
+    const ios = /iPhone|iPad/.test(navigator.userAgent);
+    let cuerpo;
+    if (S.mode !== 'remote') cuerpo = '<p class="small muted">Los avisos necesitan la conexión con Supabase.</p>';
+    else if (ios && !instalada()) cuerpo = '<p class="small muted">En el iPhone los avisos funcionan desde el ícono de la pantalla de inicio. Abre Rumbo desde ahí y actívalos.</p>';
+    else if (!pushCapable()) cuerpo = '<p class="small muted">Este navegador no permite avisos.</p>';
+    else if (AV.on) cuerpo = `<p class="small muted">Activos en este dispositivo: resumen a las 7:00 a. m., repaso a las 5:00 p. m. y cada recordatorio a su hora.</p>
+      <div class="row"><button class="btn sm" data-act="av-test">Enviar prueba</button><button class="btn sm danger" data-act="av-off">Desactivar</button></div>`;
+    else cuerpo = `<p class="small muted">Recibe un resumen a las 7:00 a. m., un repaso a las 5:00 p. m. y cada recordatorio a la hora que elijas, aunque la app esté cerrada.</p>
+      <button class="btn primary sm" data-act="av-on" ${AV.busy ? 'disabled' : ''}>${ICON.bell}<span>${AV.busy ? 'Activando…' : 'Activar avisos'}</span></button>`;
+    return `<div class="card pad section avisos"><div class="row"><span class="kpi-ic ${AV.on ? 'green' : 'violet'}">${ICON.bell}</span><h2 class="grow">Recordatorios</h2></div>${cuerpo}
+      ${AV.msg ? `<p class="small" style="color:var(--red);margin-bottom:0">${esc(AV.msg)}</p>` : ''}</div>`;
+  }
+  async function avEnable() {
+    AV.busy = true; AV.msg = ''; render();
+    try {
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') throw new Error('Sin permiso. Actívalo en Ajustes del iPhone > Notificaciones > Rumbo.');
+      const reg = await navigator.serviceWorker.ready;
+      const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64u(PUSH_PUB) });
+      const j = sub.toJSON();
+      const { error } = await sb.from('push_subs').upsert({ endpoint: j.endpoint, keys: j.keys });
+      if (error) throw new Error('No pude guardar el permiso: ' + error.message);
+      AV.on = true; toast('Avisos activados');
+    } catch (e) { AV.msg = e.message || 'No se pudieron activar los avisos.'; }
+    AV.busy = false; render();
+  }
+  async function avDisable() {
+    try {
+      const reg = await navigator.serviceWorker.ready, sub = await reg.pushManager.getSubscription();
+      if (sub) { await sb.from('push_subs').delete().eq('endpoint', sub.endpoint); await sub.unsubscribe(); }
+    } catch (e) { /* ya estaba desactivado */ }
+    AV.on = false; render(); toast('Avisos desactivados');
+  }
+  async function avTest() {
+    try { const { data, error } = await sb.functions.invoke('avisos', { body: { prueba: true } }); if (error) throw error;
+      toast(data?.enviados ? 'Enviada: debe llegar en segundos' : 'No hay dispositivos con avisos activos'); }
+    catch (e) { toast('No se pudo enviar la prueba'); }
+  }
+
   // ───────────── Calendario ─────────────
   // Eventos de un día: pasos con fecha límite, seguimientos, inicios y cierres de programas activos.
   function eventosPorDia() {
     const ev = {}, add = (d, e) => { if (!d) return; (ev[d] = ev[d] || []).push(e); };
-    const activos = new Set(S.data.programas.filter(p => p.estado === 'activo').map(p => p.id));
-    S.data.items.forEach(i => {
-      if (!activos.has(i.programa_id)) return;
+    itemsVisibles().forEach(i => {
       if (i.estado === 'esperando') add(i.fecha_seguimiento, { k: 'seg', i });
-      else if (abierto(i)) add(i.fecha_limite, { k: 'paso', i });
+      else if (abierto(i)) add(i.plan_fecha || i.fecha_limite, { k: 'paso', i });
       else if (i.estado === 'hecho') add(i.fecha_hecho, { k: 'hecho', i });
     });
     S.data.programas.forEach(p => {
@@ -629,7 +770,7 @@
     // Resumen del mes
     const delMes = Object.entries(ev).filter(([d]) => d.startsWith(S.cal.mes)).flatMap(([, e]) => e);
     const nPasos = delMes.filter(x => x.k === 'paso').length, nSeg = delMes.filter(x => x.k === 'seg').length, nIni = delMes.filter(x => x.k === 'inicio').length, nHechos = delMes.filter(x => x.k === 'hecho').length;
-    return `<div class="page-head"><h1>Calendario</h1><button class="btn sm" data-act="cal-hoy">Hoy</button></div>
+    return `<div class="page-head"><h1>Calendario</h1><div class="row"><button class="btn sm" data-act="cal-hoy">Hoy</button>${avatarBtn()}</div></div>
       <div class="cal-layout">
         <div class="card pad cal">
           <div class="cal-top"><button class="icon-btn" data-act="cal-mes" data-n="-1" aria-label="Mes anterior">${ICON.back}</button>
@@ -692,7 +833,7 @@
     const n = e => S.data.programas.filter(p => e === 'todos' || p.estado === e).length;
     const chip = (v, l) => `<button class="chip ${S.f.estado === v ? 'on' : ''}" data-act="f-estado" data-v="${v}">${l}<span>${n(v)}</span></button>`;
     return `
-      <div class="page-head"><h1>Programas</h1><button class="btn primary" data-act="nuevo">${ICON.plus}<span>Nuevo</span></button></div>
+      <div class="page-head"><h1>Programas</h1><div class="row"><button class="btn primary" data-act="nuevo">${ICON.plus}<span>Nuevo</span></button>${avatarBtn()}</div></div>
       <div class="filters">
         <input class="input search" type="search" placeholder="Buscar programa, entidad, facultad…" value="${esc(S.f.q)}" data-input="buscar">
         <select class="input" data-change="f-ruta">${opts(S.data.rutas.map(r => [r.id, r.nombre]), S.f.ruta, 'Todas las rutas')}</select>
@@ -719,6 +860,7 @@
         ${row(ICON.download, 'Descargar respaldo', 'export-json', '', 'Copia completa en JSON')}
         <label class="li menu-li"><span class="kpi-ic violet">${ICON.upload}</span><div class="grow"><div class="title">Importar respaldo</div><div class="sub">Desde un archivo JSON</div></div><input type="file" accept="application/json,.json" data-change="import" hidden></label>
       </div>
+      ${avisosCard(false)}
       ${S.mode === 'remote' ? `<button class="btn danger section" style="width:100%" data-act="logout">${ICON.out}<span>Cerrar sesión</span></button>` : ''}
       <p class="tiny muted" style="text-align:center;margin-top:16px">Versión ${esc(BUILD)}</p>`;
   }
@@ -1101,19 +1243,37 @@
 
   function formItem(i) {
     const p = byId('programas', i.programa_id);
+    const activos = S.data.programas.filter(x => x.estado === 'activo' || x.id === i.programa_id).sort((a, b) => nombreProg(a).localeCompare(nombreProg(b)));
     modal(`<form data-form="item" data-id="${i.id}">
-      ${sheetHead('Paso')}
+      ${sheetHead(p ? 'Paso' : 'Tarea')}
       ${p ? `<p class="small muted" style="margin-top:-6px"><a href="#/programa/${p.id}">${esc(p.nombre)}</a></p>` : ''}
       ${fld('Título', inp('titulo', i.titulo, 'required'))}
       ${fld('Estado', seg('estado', Object.entries(ESTADOS_ITEM), i.estado))}
-      <div class="two">${fld('Fase', `<select class="input" name="fase">${opts(p ? fasesDe(p) : [i.fase], i.fase)}</select>`)}
-        ${fld('Responsable', `<select class="input" name="responsable">${opts(ACTORES.includes(i.responsable) || !i.responsable ? ACTORES : [...ACTORES, i.responsable], i.responsable || 'Yo')}</select>`)}</div>
+      <h4 class="fsec">Mi día</h4>
+      <div class="two">${fld('Hacerlo el', inp('plan_fecha', i.plan_fecha, 'type="date"'))}${fld('Hora', inp('hora', i.hora ? i.hora.slice(0, 5) : '', 'type="time"'))}</div>
+      <div class="chips" style="margin:-4px 0 12px">
+        <button type="button" class="chip" data-act="plan-rapido" data-d="${today()}">Hoy</button>
+        <button type="button" class="chip" data-act="plan-rapido" data-d="${addDays(today(), 1)}">Mañana</button>
+        <button type="button" class="chip" data-act="plan-rapido" data-d="${(() => { const x = parse(today()); x.setDate(x.getDate() + ((8 - x.getDay()) % 7 || 7)); return isoOf(x); })()}">Próximo lunes</button>
+        <button type="button" class="chip" data-act="plan-rapido" data-d="">Sin fecha</button>
+      </div>
+      ${fld('Recordarme', `<input class="input" name="recordar" type="datetime-local" value="${esc(i.recordado_at ? '' : localDT(i.recordar_at))}">`)}
+      <div class="chips" style="margin:-4px 0 12px">
+        <button type="button" class="chip" data-act="rec-rapido" data-v="hora">A la hora planeada</button>
+        <button type="button" class="chip" data-act="rec-rapido" data-v="1h">En 1 hora</button>
+        <button type="button" class="chip" data-act="rec-rapido" data-v="manana">Mañana 8:00 a. m.</button>
+        <button type="button" class="chip" data-act="rec-rapido" data-v="">Sin aviso</button>
+      </div>
+      <h4 class="fsec">Detalle</h4>
+      ${p ? `<div class="two">${fld('Fase', `<select class="input" name="fase">${opts(fasesDe(p), i.fase)}</select>`)}
+        ${fld('Responsable', `<select class="input" name="responsable">${opts(ACTORES.includes(i.responsable) || !i.responsable ? ACTORES : [...ACTORES, i.responsable], i.responsable || 'Yo')}</select>`)}</div>`
+        : fld('Programa <span class="muted">(opcional)</span>', `<select class="input" name="programa_id">${opts(activos.map(x => [x.id, nombreProg(x)]), '', 'Ninguno, es una tarea personal')}</select>`)}
       <div class="two">${fld('Esperando a', `<select class="input" name="esperando_a">${opts(ACTORES.filter(a => a !== 'Yo'), i.esperando_a || 'Cliente')}</select>`, 'esperando')}
         ${fld('Fecha de seguimiento', inp('fecha_seguimiento', i.fecha_seguimiento || addDays(today(), 3), 'type="date"'), 'esperando')}</div>
       ${fld('Fecha límite', inp('fecha_limite', i.fecha_limite, 'type="date"'))}
       ${fld('Enlace de evidencia (OneDrive, correo, SharePoint)', inp('enlace', i.enlace, 'type="url" placeholder="https://"'))}
       ${fld('Nota', `<textarea class="input" name="nota" rows="3">${esc(i.nota || '')}</textarea>`)}
-      <label class="small row"><input type="checkbox" name="esencial" ${i.esencial ? 'checked' : ''}> Esencial (define la fase actual y el semáforo)</label>
+      ${p ? `<label class="small row"><input type="checkbox" name="esencial" ${i.esencial ? 'checked' : ''}> Esencial (define la fase actual y el semáforo)</label>` : ''}
       <div class="sheet-actions"><button type="button" class="btn danger left" data-act="del-item" data-id="${i.id}">Eliminar</button>
         <button type="button" class="btn" data-act="close">Cancelar</button><button class="btn primary">Guardar</button></div>
     </form>`);
@@ -1122,17 +1282,18 @@
 
   function formCaptura() {
     const activos = S.data.programas.filter(p => p.estado === 'activo').sort((a, b) => nombreProg(a).localeCompare(nombreProg(b)));
-    if (!activos.length) return formPrograma();
     const actual = S.view.name === 'programa' ? S.view.id : '';
+    const dia = S.view.name === 'hoy' && S.dia ? S.dia : today();
     modal(`<form data-form="captura">
       ${sheetHead('Captura rápida')}
-      ${fld('Programa', `<select class="input" name="programa_id" required>${opts(activos.map(p => [p.id, nombreProg(p)]), actual, actual ? undefined : 'Elegir…')}</select>`)}
-      ${fld('Qué es', seg('tipo', [['nota', 'Nota'], ['tarea', 'Tarea'], ['esperando', 'Esperando a']], 'tarea'))}
-      ${fld('Texto', `<textarea class="input" name="texto" rows="3" required autofocus placeholder="Ej.: Pedir certificación bancaria a facturación"></textarea>`)}
-      ${fld('Fecha límite', inp('fecha_limite', '', 'type="date"'), 'tarea')}
+      ${fld('Qué es', seg('tipo', [['tarea', 'Tarea'], ['esperando', 'Esperando a'], ['nota', 'Nota']], 'tarea'))}
+      ${fld('Texto', `<textarea class="input" name="texto" rows="2" required autofocus placeholder="Ej.: Llamar a Diana por la orden de compra"></textarea>`)}
+      ${fld('Programa', `<select class="input" name="programa_id">${opts(activos.map(p => [p.id, nombreProg(p)]), actual, 'Ninguno, tarea personal')}</select>`)}
+      <div class="two">${fld('Para el', inp('plan_fecha', dia, 'type="date"'), 'tarea')}${fld('Hora <span class="muted">(opcional)</span>', inp('hora', '', 'type="time"'), 'tarea')}</div>
       <div class="two">${fld('Esperando a', `<select class="input" name="esperando_a">${opts(ACTORES.filter(a => a !== 'Yo'), 'Cliente')}</select>`, 'esperando')}
         ${fld('Hacer seguimiento el', inp('fecha_seguimiento', addDays(today(), 3), 'type="date"'), 'esperando')}</div>
-      <p class="tiny muted" data-show="tarea esperando">Se agrega a la fase actual del programa como paso opcional.</p>
+      <label class="small row" data-show="tarea esperando" style="margin-bottom:12px"><input type="checkbox" name="avisar" checked> Avisarme (a la hora elegida o a las 8:00 a. m.)</label>
+      <p class="tiny muted" data-show="nota">La nota queda en la bitácora del programa elegido.</p>
       <div class="sheet-actions"><button type="button" class="btn" data-act="close">Cancelar</button><button class="btn primary">Guardar</button></div>
     </form>`);
     applyShow($('#modal-root form'), 'tarea');
@@ -1232,6 +1393,26 @@
     noop() {},
     nav: el => go(el.dataset.to),
     'nav-programas': () => go('programas'),
+    dia(el) { S.dia = el.dataset.d; render(); },
+    async mover(el) {
+      const i = byId('items', el.dataset.id), d = el.dataset.d;
+      const patch = { plan_fecha: d };
+      if (i.estado === 'esperando') { patch.fecha_seguimiento = d; delete patch.plan_fecha; }
+      if (i.recordar_at && !i.recordado_at && i.hora) patch.recordar_at = aRecordar(d, i.hora);
+      await db.update('items', i.id, patch); render(); toast(d === today() ? 'Para hoy' : 'Movido a ' + relDate(d).toLowerCase());
+    },
+    'plan-rapido'(el) { const f = el.closest('form'); f.plan_fecha.value = el.dataset.d; },
+    'rec-rapido'(el) {
+      const f = el.closest('form'), v = el.dataset.v, out = f.recordar;
+      if (!v) { out.value = ''; return; }
+      if (v === '1h') { const x = new Date(Date.now() + 3600e3); out.value = `${isoOf(x)}T${pad(x.getHours())}:${pad(x.getMinutes())}`; return; }
+      if (v === 'manana') { out.value = `${addDays(today(), 1)}T08:00`; return; }
+      if (!f.plan_fecha.value) { toast('Primero elige el día'); return; }
+      out.value = `${f.plan_fecha.value}T${f.hora.value || '08:00'}`;
+    },
+    'av-on': () => avEnable(),
+    'av-off': () => avDisable(),
+    'av-test': () => avTest(),
     'nav-calendario': () => go('calendario'),
     'cal-dia'(el) { S.cal.dia = el.dataset.d; render(); },
     'cal-mes'(el) {
@@ -1385,13 +1566,21 @@
     },
     async item(d, f) {
       const i = byId('items', f.dataset.id);
-      const patch = clean({ titulo: d.titulo, estado: d.estado, fase: d.fase, responsable: d.responsable, fecha_limite: d.fecha_limite, enlace: d.enlace, nota: d.nota });
-      patch.esencial = d.esencial === 'on';
+      const patch = clean({ titulo: d.titulo, estado: d.estado, fase: d.fase, responsable: d.responsable, fecha_limite: d.fecha_limite, enlace: d.enlace, nota: d.nota,
+        plan_fecha: d.plan_fecha, hora: d.hora });
+      if ('esencial' in d || byId('programas', i.programa_id)) patch.esencial = d.esencial === 'on';
+      if (!i.programa_id && d.programa_id) {
+        const p = byId('programas', d.programa_id);
+        patch.programa_id = p.id; const fa = faseActual(p), fs = fasesDe(p); patch.fase = fs.includes(fa) ? fa : fs[0]; patch.orden = 900;
+      }
       if (d.estado === 'esperando') Object.assign(patch, clean({ esperando_a: d.esperando_a, fecha_seguimiento: d.fecha_seguimiento }));
       else Object.assign(patch, { esperando_a: null, fecha_seguimiento: null });
       if (d.estado === 'hecho' && i.estado !== 'hecho') patch.fecha_hecho = today();
       if (d.estado !== 'hecho') patch.fecha_hecho = null;
-      await db.update('items', i.id, patch); await touch(i.programa_id); closeModal(); render();
+      const rec = d.recordar ? new Date(d.recordar).toISOString() : null;
+      if (rec !== (i.recordado_at ? null : i.recordar_at)) { patch.recordar_at = rec; patch.recordado_at = null; }
+      await db.update('items', i.id, patch); await touch(i.programa_id || patch.programa_id); closeModal(); render();
+      if (rec && !AV.on && S.mode === 'remote') toast('Guardado. Activa los avisos en Más para recibir el recordatorio');
     },
     async 'add-item'(d, f) {
       if (!d.titulo || !d.titulo.trim()) return;
@@ -1405,18 +1594,32 @@
     },
     async captura(d) {
       const p = byId('programas', d.programa_id);
-      if (!p) { toast('Elige un programa'); return; }
+      const texto = d.texto.trim();
       if (d.tipo === 'nota') {
-        await db.insert('bitacora', { programa_id: p.id, fecha: today(), tipo: 'Nota', resumen: d.texto.trim(), proxima_accion: null });
-      } else {
-        const fa = faseActual(p), fs = fasesDe(p);
-        const fase = fs.includes(fa) ? fa : (fs[fs.length - 1] || 'General');
-        const esp = d.tipo === 'esperando';
-        await db.insert('items', clean({ programa_id: p.id, fase, orden: 900, titulo: d.texto, estado: esp ? 'esperando' : 'pendiente', responsable: 'Yo',
-          esperando_a: esp ? d.esperando_a : null, fecha_seguimiento: esp ? d.fecha_seguimiento : null, fecha_limite: esp ? null : d.fecha_limite,
-          fecha_hecho: null, enlace: null, nota: null, esencial: false, dias_ref: null, dias_rel: null }));
+        if (!p) { toast('Elige el programa de la nota'); return; }
+        await db.insert('bitacora', { programa_id: p.id, fecha: today(), tipo: 'Nota', resumen: texto, proxima_accion: null });
+        await touch(p.id); closeModal(); render(); toast('Nota en ' + nombreProg(p)); return;
       }
-      await touch(p.id); closeModal(); render(); toast('Guardado en ' + nombreProg(p));
+      const esp = d.tipo === 'esperando';
+      let fase = null;
+      if (p) { const fa = faseActual(p), fs = fasesDe(p); fase = fs.includes(fa) ? fa : (fs[fs.length - 1] || 'General'); }
+      const plan = esp ? null : (d.plan_fecha || null), hora = esp ? null : (d.hora || null);
+      const recordar = d.avisar ? (esp ? aRecordar(d.fecha_seguimiento, '08:00') : aRecordar(plan, hora || '08:00')) : null;
+      await db.insert('items', { programa_id: p ? p.id : null, fase, orden: 900, titulo: texto, estado: esp ? 'esperando' : 'pendiente', responsable: 'Yo',
+        esperando_a: esp ? d.esperando_a : null, fecha_seguimiento: esp ? d.fecha_seguimiento : null, fecha_limite: null, plan_fecha: plan, hora,
+        recordar_at: recordar && new Date(recordar) > new Date() ? recordar : null, recordado_at: null,
+        fecha_hecho: null, enlace: null, nota: null, esencial: false, dias_ref: null, dias_rel: null });
+      if (p) await touch(p.id);
+      closeModal(); render(); toast(p ? 'Guardado en ' + nombreProg(p) : 'Tarea guardada');
+    },
+    async 'tarea-rapida'(d, f) {
+      if (!d.titulo || !d.titulo.trim()) return;
+      const dia = f.dataset.d, hora = d.hora || null, recordar = hora ? aRecordar(dia, hora) : null;
+      await db.insert('items', { programa_id: null, fase: null, orden: 0, titulo: d.titulo.trim(), estado: 'pendiente', responsable: 'Yo', esperando_a: null,
+        fecha_seguimiento: null, fecha_limite: null, plan_fecha: dia, hora, recordar_at: recordar && new Date(recordar) > new Date() ? recordar : null, recordado_at: null,
+        fecha_hecho: null, enlace: null, nota: null, esencial: false, dias_ref: null, dias_rel: null });
+      render();
+      const again = document.querySelector('form[data-form="tarea-rapida"] input[name="titulo"]'); if (again) again.focus();
     },
     async bitacora(d, f) {
       const pid = f.dataset.pid;
@@ -1561,6 +1764,7 @@
         await seedIfEmpty();
       }
       S.ready = true;
+      avState().then(() => { if (AV.on) render(); });
     } catch (err) {
       console.error(err);
       S.error = err.message || String(err);

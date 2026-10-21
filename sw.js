@@ -1,7 +1,7 @@
 // Service worker mínimo: primero red, y si no hay conexión, la última copia guardada de la app.
 // Los datos de Supabase nunca se guardan aquí.
-const CACHE = 'rumbo-20261020230822';
-const SHELL = ['./', 'index.html', 'styles.css?v=20261020230822', 'app.js?v=20261020230822', 'plantillas.js?v=20261020230822', 'config.js?v=20261020230822', 'manifest.json', 'icon.png'];
+const CACHE = 'rumbo-20261020231840';
+const SHELL = ['./', 'index.html', 'styles.css?v=20261020231840', 'app.js?v=20261020231840', 'plantillas.js?v=20261020231840', 'config.js?v=20261020231840', 'manifest.json', 'icon.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -17,4 +17,19 @@ self.addEventListener('fetch', e => {
       .then(res => { const copy = res.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)); return res; })
       .catch(() => caches.match(e.request))
   );
+});
+
+// Avisos: notificaciones que envía la función "avisos" de Supabase.
+self.addEventListener('push', e => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (_) { d = { title: 'Rumbo', body: e.data ? e.data.text() : '' }; }
+  e.waitUntil(self.registration.showNotification(d.title || 'Rumbo', { body: d.body || '', tag: d.tag || 'rumbo', icon: './icon.png', badge: './icon.png', data: { url: d.url || './' } }));
+});
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const url = new URL((e.notification.data && e.notification.data.url) || './', self.registration.scope).href;
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cs => {
+    for (const c of cs) { if ('focus' in c) { c.navigate ? c.navigate(url) : null; return c.focus(); } }
+    return self.clients.openWindow(url);
+  }));
 });
