@@ -26,7 +26,7 @@
   const TIPO_CM_LARGO = { 1: 'Cursos y cursos especializados (certificaciones)', 2: 'Talleres', 3: 'Diplomados', 4: 'Seminarios, congresos o simposios', 5: 'Otro' };
   const PLATAFORMAS = ['Moodle El Bosque', 'Plataforma del cliente', 'Zoom', 'Teams', 'Presencial', 'Otra'];
   const MESES_CM = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
-  const BUILD = '20261020231840';
+  const BUILD = '20261020232144';
 
   const S = {
     data: Object.fromEntries(TABLES.map(t => [t, []])),
@@ -322,10 +322,12 @@
     const antes = S.view.name;
     routeFromHash(); closeModal(); render(); window.scrollTo(0, 0);
     // Animación corta al cambiar de pantalla: entra desde la derecha al avanzar y desde la izquierda al volver.
+    // Solo al entrar a un detalle (ficha del programa, plantillas) o al volver de él, como en Caudal.
+    // Entre pestañas de la barra inferior no hay animación: la pantalla cambia quieta.
+    const DETALLE = ['programa', 'plantillas'];
     const m = $('#app main');
-    if (m && antes !== S.view.name) {
-      const atras = S.navBack || ORDEN_VISTA[S.view.name] < ORDEN_VISTA[antes];
-      m.classList.add(atras ? 'navback' : 'navfwd');
+    if (m && antes !== S.view.name && (DETALLE.includes(S.view.name) || DETALLE.includes(antes))) {
+      m.classList.add(DETALLE.includes(S.view.name) ? 'navfwd' : 'navback');
     }
     S.navBack = false;
   });
