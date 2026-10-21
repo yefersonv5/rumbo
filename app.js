@@ -960,9 +960,26 @@
       if (CFG.supabaseUrl && CFG.supabaseKey) {
         if (!window.supabase) throw new Error('No cargó la librería de Supabase. Revisa la conexión a internet.');
         S.mode = 'remote';
-        sb = window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseKey);
-        const { data: { session } } = await sb.auth.getSession();
+        sb = window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseKey, {
+          auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey: 'sb-jrgmesjmhtfvmwocaojl-auth-token' },
+        });
+        let { data: { session } } = await sb.auth.getSession();
+        if (!session) {
+          // Hay un token guardado pero no se pudo restaurar (p. ej. la app estuvo cerrada mucho tiempo): reintenta con el token de renovación.
+          let guardado = null;
+          try { guardado = localStorage.getItem('sb-jrgmesjmhtfvmwocaojl-auth-token'); } catch (e) { /* sin almacenamiento */ }
+          if (guardado) { const r = await sb.auth.refreshSession(); session = r.data?.session || null; }
+        }
         S.user = session?.user || null;
+        sb.auth.onAuthStateChange((evento, s) => {
+          if (evento === 'SIGNED_OUT') { S.user = null; render(); }
+          else if (s?.user) S.user = s.user;
+        });
+        // Al volver a la app (celular en segundo plano), renueva la sesión si hace falta.
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') { sb.auth.startAutoRefresh(); sb.auth.getSession(); }
+          else sb.auth.stopAutoRefresh();
+        });
         if (S.user) { await loadRemote(); await seedIfEmpty(); }
       } else {
         S.mode = 'local';
