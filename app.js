@@ -283,6 +283,7 @@
       <div class="field"><label>Contraseña</label><input class="input" name="password" type="password" autocomplete="current-password" required></div>
       <p id="login-msg" class="small" style="color:var(--red)"></p>
       <button class="btn primary" style="width:100%">Entrar</button>
+      <button type="button" class="btn ghost" style="width:100%;margin-top:8px" data-act="signup">Primera vez: crear mi cuenta</button>
     </form>`;
   }
 
@@ -780,6 +781,23 @@
     async logout() { await sb.auth.signOut(); S.user = null; S.data = Object.fromEntries(TABLES.map(t => [t, []])); closeModal(); render(); },
   };
 
+  async function entrar(user) {
+    S.user = user; S.ready = false; render();
+    await loadRemote(); await seedIfEmpty(); S.ready = true; render();
+  }
+  ACT.signup = async el => {
+    const f = el.closest('form'), msg = $('#login-msg');
+    const email = f.email.value.trim(), password = f.password.value;
+    if (!email || password.length < 8) { msg.textContent = 'Escribe tu correo y una contraseña de al menos 8 caracteres.'; return; }
+    msg.textContent = 'Creando tu cuenta…';
+    const { data, error } = await sb.auth.signUp({ email, password });
+    if (error) { msg.textContent = /registro cerrado|database error/i.test(error.message) ? 'El registro está cerrado para este correo.' : /already|registered/i.test(error.message) ? 'Ya tienes cuenta: usa Entrar.' : error.message; return; }
+    if (data.session) return entrar(data.user);
+    const r = await sb.auth.signInWithPassword({ email, password });
+    if (r.error) { msg.textContent = 'Cuenta creada. Ahora usa Entrar.'; return; }
+    await entrar(r.data.user);
+  };
+
   async function recalcular(p) {
     let n = 0;
     for (const i of itemsDe(p.id).filter(i => abierto(i) && i.dias_ref)) {
@@ -793,10 +811,9 @@
   const FORMS = {
     async login(d) {
       const msg = $('#login-msg'); msg.textContent = '';
-      const { data, error } = await sb.auth.signInWithPassword({ email: d.email, password: d.password });
-      if (error) { msg.textContent = 'No se pudo entrar: ' + error.message; return; }
-      S.user = data.user; S.ready = false; render();
-      await loadRemote(); await seedIfEmpty(); S.ready = true; render();
+      const { data, error } = await sb.auth.signInWithPassword({ email: d.email.trim(), password: d.password });
+      if (error) { msg.textContent = /invalid/i.test(error.message) ? 'Correo o contraseña incorrectos. Si es tu primera vez, usa "crear mi cuenta".' : 'No se pudo entrar: ' + error.message; return; }
+      await entrar(data.user);
     },
     async programa(d, f) {
       const id = f.dataset.id, mods = new FormData(f).getAll('modulos');

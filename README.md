@@ -29,10 +29,9 @@ Semáforo: rojo = paso esencial vencido, o inicio en 15 días con fases previas 
 
 Ya hecho: proyecto Supabase `rumbo` (São Paulo) con tablas y RLS, `config.js` conectado, repositorio y GitHub Pages.
 
-Pendiente (solo Yeferson):
-1. En Supabase > *Authentication > Users* > **Add user > Create new user**: tu correo y una contraseña, con *Auto Confirm User* marcado.
-2. En *Authentication > Sign In / Providers* desactivar **Allow new users to sign up**.
-3. Abrir https://yefersonv5.github.io/rumbo/ en el iPhone con Safari > Compartir > **Agregar a inicio**.
+Acceso: la primera vez, en la pantalla de inicio escribe tu correo y una contraseña y toca **Primera vez: crear mi cuenta**. Solo el correo del dueño puede registrarse (trigger en `auth.users`) y solo ese correo puede leer o escribir datos (políticas RLS restrictivas).
+
+Instalar en el iPhone: abrir https://yefersonv5.github.io/rumbo/ en Safari > Compartir > **Agregar a inicio**.
 
 Sin `config.js` completo la app funciona en **modo local** (datos solo en ese navegador): sirve para probar.
 Para pasar lo probado a Supabase: *Más > Descargar respaldo* en modo local y *Más > Importar respaldo* ya conectado.

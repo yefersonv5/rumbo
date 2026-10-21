@@ -158,3 +158,17 @@ end $$;
 -- Función mínima para la tarea anti-pausa (no expone datos).
 create or replace function ping() returns text language sql security definer set search_path = public as $$ select 'ok'::text $$;
 grant execute on function ping() to anon;
+
+-- Solo el dueño: registro limitado a su correo y datos visibles solo para él.
+create schema if not exists privado;
+revoke all on schema privado from public, anon, authenticated;
+create or replace function privado.solo_dueno_registro() returns trigger
+language plpgsql security definer set search_path = '' as $$
+begin
+  if lower(new.email) is distinct from 'jeferv566@gmail.com' then raise exception 'Registro cerrado'; end if;
+  new.email_confirmed_at := coalesce(new.email_confirmed_at, now());
+  return new;
+end $$;
+create trigger solo_dueno_registro before insert on auth.users for each row execute function privado.solo_dueno_registro();
+-- Más una política "as restrictive" por tabla:
+-- using ((select auth.jwt()->>'email') = 'jeferv566@gmail.com')

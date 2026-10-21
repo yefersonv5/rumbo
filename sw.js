@@ -1,6 +1,6 @@
 // Service worker mínimo: primero red, y si no hay conexión, la última copia guardada de la app.
 // Los datos de Supabase nunca se guardan aquí.
-const CACHE = 'rumbo-v1';
+const CACHE = 'rumbo-v2';
 const SHELL = ['./', 'index.html', 'styles.css', 'app.js', 'plantillas.js', 'config.js', 'manifest.json', 'icon.png'];
 
 self.addEventListener('install', e => {
