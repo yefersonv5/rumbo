@@ -133,7 +133,10 @@ main { max-width: 1080px; margin: 0 auto; padding: 16px; }
 .btn.ghost { border-color: transparent; background: transparent; color: var(--accent); }
 .btn.danger { color: var(--red); }
 .btn.sm { padding: 5px 10px; font-size: 13px; }
-.icon-btn { border: 0; background: none; cursor: pointer; padding: 6px; border-radius: 8px; color: var(--ink-2); }
+.icon-btn { border: 0; background: none; cursor: pointer; padding: 6px; border-radius: 8px; color: var(--ink-2); display: inline-grid; place-items: center; flex: none; }
+.icon-btn svg { width: 20px; height: 20px; display: block; }
+.sheet-head .icon-btn { width: 36px; height: 36px; margin-right: -2px; background: var(--surface-2); border-radius: 50%; }
+.sheet-head .icon-btn svg { width: 18px; height: 18px; }
 .icon-btn:hover { background: var(--surface-2); }
 
 /* Pills */
@@ -188,6 +191,8 @@ main { max-width: 1080px; margin: 0 auto; padding: 16px; }
   width: 100%; padding: 9px 11px; border-radius: 9px; border: 1px solid var(--line); background: var(--surface); outline: none;
 }
 .input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.input::placeholder, .add-line input::placeholder { color: var(--ink-3); opacity: 1; }
+select.input:invalid, select.input.empty { color: var(--ink-3); }
 .filters .input { width: auto; flex: 1 1 140px; }
 .chips { display: flex; gap: 6px; flex-wrap: wrap; }
 .chip { border: 1px solid var(--line); background: var(--surface); padding: 5px 11px; border-radius: 999px; font-size: 13px; cursor: pointer; }
@@ -254,7 +259,17 @@ main.navback { animation: navback .22s ease-out; }
 .choice { display: grid; gap: 8px; }
 .choice label { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; }
 .choice label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
-.choice input { margin-top: 3px; accent-color: var(--accent); }
+/* Casillas y círculos propios: se ven bien en claro y en oscuro (el iPhone los pinta negros en modo oscuro) */
+input[type="radio"], input[type="checkbox"] {
+  -webkit-appearance: none; appearance: none; flex: none; width: 20px; height: 20px; margin: 2px 0 0;
+  border: 1.5px solid var(--ink-3); background: var(--surface); display: inline-grid; place-items: center; cursor: pointer;
+}
+input[type="radio"] { border-radius: 50%; }
+input[type="checkbox"] { border-radius: 6px; }
+input[type="radio"]:checked { border-color: var(--accent); border-width: 6px; }
+input[type="checkbox"]:checked { background: var(--accent); border-color: var(--accent); }
+input[type="checkbox"]:checked::after { content: ""; width: 5px; height: 10px; border: solid var(--surface); border-width: 0 2.5px 2.5px 0; transform: translateY(-1px) rotate(45deg); }
+input[type="radio"]:focus-visible, input[type="checkbox"]:focus-visible { box-shadow: 0 0 0 3px var(--accent-soft); outline: none; }
 .seg { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
 .seg button { flex: 1; border: 0; background: var(--surface); padding: 8px 6px; cursor: pointer; font-size: 13px; }
 .seg button + button { border-left: 1px solid var(--line); }
@@ -274,3 +289,4 @@ table.simple { width: 100%; border-collapse: collapse; font-size: 14px; }
 table.simple th, table.simple td { text-align: left; padding: 9px 12px; border-top: 1px solid var(--line); }
 table.simple th { font-size: 12px; color: var(--ink-3); font-weight: 600; border-top: 0; }
 .num { text-align: right !important; font-variant-numeric: tabular-nums; }
+.row > input[type="checkbox"] { margin: 0; }

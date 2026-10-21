@@ -702,7 +702,7 @@
       <div class="two">${fld('Nombre corto', inp('nombre_corto', p.nombre_corto, 'placeholder="Ej.: Solventum AV"'))}
         ${fld('Tipo', `<select class="input" name="tipo">${opts(TIPOS, p.tipo, 'Elegir…')}</select>`)}</div>
       ${fld('Entidad', `<select class="input" name="entidad_id">${opts(ents.map(e => [e.id, e.nombre]), p.entidad_id, 'Sin entidad / nueva abajo')}</select>
-        <div class="two" style="margin-top:6px">${inp('nueva_entidad', '', 'placeholder="…o escribe una entidad nueva"')}<select class="input" name="tipo_entidad">${opts(TIPOS_ENT, '', 'Tipo de entidad')}</select></div>`)}
+        <div class="two" style="margin-top:6px">${inp('nueva_entidad', '', 'placeholder="Entidad nueva"')}<select class="input" name="tipo_entidad">${opts(TIPOS_ENT, '', 'Tipo de entidad')}</select></div>`)}
       ${nuevo ? fld('Ruta base', `<div class="choice">${rutas.map((r, i) => `<label><input type="radio" name="ruta_id" value="${r.id}" ${i === 0 ? 'checked' : ''}><div><b>${esc(r.nombre)}</b><div class="small muted">${esc(r.descripcion || '')}</div></div></label>`).join('')}</div>`)
         : `<p class="small muted">Ruta: <b>${esc(rutaDe(p)?.nombre || '')}</b> (no se puede cambiar).</p>`}
       ${fld('Módulos', `<div class="choice">${mods.map(m => `<label><input type="checkbox" name="modulos" value="${m.id}" ${(p.modulos || []).includes(m.id) ? 'checked' : ''}><div><b>${esc(m.nombre)}</b><div class="small muted">${esc(m.descripcion || '')}</div></div></label>`).join('')}</div>`)}
@@ -744,7 +744,7 @@
 
   function formCaptura() {
     const activos = S.data.programas.filter(p => p.estado === 'activo').sort((a, b) => nombreProg(a).localeCompare(nombreProg(b)));
-    if (!activos.length) { toast('Primero crea un programa'); return formPrograma(); }
+    if (!activos.length) return formPrograma();
     const actual = S.view.name === 'programa' ? S.view.id : '';
     modal(`<form data-form="captura">
       ${sheetHead('Captura rápida')}
