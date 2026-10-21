@@ -26,7 +26,7 @@
   const TIPO_CM_LARGO = { 1: 'Cursos y cursos especializados (certificaciones)', 2: 'Talleres', 3: 'Diplomados', 4: 'Seminarios, congresos o simposios', 5: 'Otro' };
   const PLATAFORMAS = ['Moodle El Bosque', 'Plataforma del cliente', 'Zoom', 'Teams', 'Presencial', 'Otra'];
   const MESES_CM = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
-  const BUILD = '20261020232144';
+  const BUILD = '20261020232422';
 
   const S = {
     data: Object.fromEntries(TABLES.map(t => [t, []])),
@@ -545,7 +545,7 @@
   function viewInicio() {
     const t = today(), t30 = addDays(t, 30), t14 = addDays(t, -14);
     const fecha = new Date().toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' });
-    const head = `<header class="hello"><div><p class="muted small cap">${esc(fecha)}</p><h1>${saludo()}, ${esc(nombreUsuario())}</h1></div>
+    const head = `<header class="hello"><div><p class="fecha cap">${esc(fecha)}</p><h1>${saludo()}, ${esc(nombreUsuario())}</h1></div>
       <button class="avatar" data-act="nav" data-to="mas" aria-label="Más opciones">${esc(nombreUsuario().slice(0, 1))}</button></header>`;
     if (!S.data.programas.length) {
       return head + `<div class="card hero section">
@@ -657,7 +657,7 @@
     const h = i => i.hora || '';
     const agendaHtml = agenda.length ? grupo('Mañana · antes de 12', i => abierto(i) && h(i) && h(i) < '12') + grupo('Tarde', i => abierto(i) && h(i) >= '12') +
       grupo('Sin hora', i => abierto(i) && !h(i)) + grupo('Hecho', i => !abierto(i)) : '';
-    return `<div class="page-head"><div><p class="muted small cap" style="margin:0">${esc(parse(d).toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' }))}</p><h1 class="cap">${esc(titulo)}</h1></div>${avatarBtn()}</div>
+    return `<div class="page-head"><div><p class="fecha cap">${esc(parse(d).toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' }))}</p><h1 class="cap">${esc(titulo)}</h1></div>${avatarBtn()}</div>
       <div class="week">${strip}</div>
       <div class="dash-cols">
         <div>

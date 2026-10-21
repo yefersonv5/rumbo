@@ -79,7 +79,11 @@ h1, h2, h3 { margin: 0; line-height: 1.2; }
 h1 { font-size: 24px; letter-spacing: -.02em; font-weight: 700; }
 h2 { font-size: 16px; font-weight: 650; letter-spacing: -.01em; }
 h3 { font-size: 15px; font-weight: 650; color: var(--ink); }
-.cap::first-letter, .cap { text-transform: capitalize; }
+.cap { display: inline-block; }
+.cap::first-letter { text-transform: uppercase; }
+/* Fecha sobre el saludo y los títulos: legible en claro y en oscuro */
+.fecha { margin: 0 0 4px; font-size: 14px; font-weight: 600; color: var(--ink-2); letter-spacing: .01em; }
+@media (prefers-color-scheme: dark) { .fecha { color: #c3c7d9; } }
 svg { flex: none; }
 
 /* Estructura: barra inferior en el celular, barra lateral en el PC */
