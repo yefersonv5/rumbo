@@ -10,19 +10,25 @@
 <meta name="apple-mobile-web-app-title" content="Rumbo">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.png">
-<link rel="stylesheet" href="styles.css?v=5">
+<link rel="stylesheet" href="styles.css?v=6">
 </head>
 <body>
 <div id="app"></div>
 <div id="modal-root"></div>
 <div id="toast" class="toast" hidden></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=5"></script>
-<script src="plantillas.js?v=5"></script>
-<script src="app.js?v=5"></script>
+<script src="config.js?v=6"></script>
+<script src="plantillas.js?v=6"></script>
+<script src="app.js?v=6"></script>
 <script>
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(r => {
+      r.update();
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') r.update(); });
+    }).catch(() => {});
+    // Cuando llega una versión nueva, recarga una sola vez para usarla.
+    let recargado = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (!recargado && navigator.serviceWorker.controller) { recargado = true; location.reload(); } });
   }
 </script>
 </body>

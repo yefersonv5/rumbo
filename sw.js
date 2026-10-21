@@ -1,7 +1,7 @@
 // Service worker mínimo: primero red, y si no hay conexión, la última copia guardada de la app.
 // Los datos de Supabase nunca se guardan aquí.
-const CACHE = 'rumbo-v5';
-const SHELL = ['./', 'index.html', 'styles.css?v=5', 'app.js?v=5', 'plantillas.js?v=5', 'config.js?v=5', 'manifest.json', 'icon.png'];
+const CACHE = 'rumbo-v6';
+const SHELL = ['./', 'index.html', 'styles.css?v=6', 'app.js?v=6', 'plantillas.js?v=6', 'config.js?v=6', 'manifest.json', 'icon.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -13,7 +13,7 @@ self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
   e.respondWith(
-    fetch(e.request)
+    fetch(e.request, { cache: 'no-cache' }) // siempre pregunta al servidor si hay versión nueva
       .then(res => { const copy = res.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)); return res; })
       .catch(() => caches.match(e.request))
   );

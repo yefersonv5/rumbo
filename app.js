@@ -75,6 +75,7 @@
   function toast(msg) {
     const t = $('#toast'); t.textContent = msg; t.hidden = false;
     clearTimeout(toast.timer); toast.timer = setTimeout(() => { t.hidden = true; }, 2400);
+    t.onclick = () => { clearTimeout(toast.timer); t.hidden = true; };
   }
   function fail(err) { console.error(err); toast('Error: ' + (err?.message || err)); }
   function download(name, text, type) {

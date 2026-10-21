@@ -44,6 +44,7 @@
   }
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { margin: 0; }
 /* Comportamiento de app (igual que Caudal): sin zoom por doble toque, sin agrandar texto, sin destello al tocar */
 html { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
