@@ -1,14 +1,15 @@
-// Plantillas de Rumbo. Versión 2: flujo real contado por Yeferson (transcripción del 21 oct 2026).
+// Plantillas de Rumbo. Versión 4 (hitos). Base: flujo real contado por Yeferson (transcripción del 21 oct 2026).
 // La app las carga en la base la primera vez y las actualiza cuando sube la versión.
 //
 // Cada paso: { f: fase, t: título, r: responsable (cargo, nunca nombre propio),
 //   ref: 'inicio' | 'fin' | 'mitad' | 'sesion' (primera sesión de cierre financiero registrada, al menos 10 días después del fin)
 //        | 'v20' (ventana del 20 al 30 del mes, después de la sesión de cierre) | null, d: días desde la referencia,
 //   e: esencial (define fase actual y semáforo), av: avisar ese día a las 8:00 a. m.,
-//   c: condición ('nuevo' | 'cohorte' | 'virtual' | 'presencial'), rep: { cada, hastaRef, hasta } repetir cada N días, k: clave especial }
+//   c: condición ('nuevo' | 'cohorte' | 'virtual' | 'presencial'), rep: { cada, hastaRef, hasta } repetir cada N días, k: clave especial,
+//   h: nombre del hito (los hitos marcan el avance real del proyecto) }
 
 (function () {
-  const P = (f, t, r, ref, d, o = {}) => ({ f, t, r, ref: ref ?? null, d: d ?? null, e: o.e ?? true, av: !!o.av, c: o.c ?? null, rep: o.rep ?? null, k: o.k ?? null });
+  const P = (f, t, r, ref, d, o = {}) => ({ f, t, r, ref: ref ?? null, d: d ?? null, e: o.e ?? true, av: !!o.av, c: o.c ?? null, rep: o.rep ?? null, k: o.k ?? null, h: o.h ?? null });
 
   // ── Bloques que comparten las rutas con docentes propios ──
   const HONORARIOS = [
@@ -22,7 +23,7 @@
     P('Certificación', 'Pedir al director el listado de quienes se certifican', 'Director del programa', 'fin', -30, { e: false }),
     P('Certificación', 'Solicitar certificados y encuestas a la auxiliar administrativa (base de datos, firmante, nombre, fechas, intensidad horaria y facultades)', 'Auxiliar administrativa', 'fin', -30, { av: true }),
     P('Certificación', 'Enviar a la auxiliar el listado final actualizado', 'Yo', 'fin', 0),
-    P('Certificación', 'Certificados y encuestas de satisfacción enviados a los participantes', 'Auxiliar administrativa', 'fin', 5),
+    P('Certificación', 'Certificados y encuestas de satisfacción enviados a los participantes', 'Auxiliar administrativa', 'fin', 5, { h: 'Certificados enviados' }),
   ];
   const CIERRE = [
     P('Cierre financiero', 'Confirmar que todos los docentes cobraron', 'Yo', 'fin', 0, { av: true }),
@@ -30,17 +31,17 @@
     P('Cierre financiero', 'Conciliar gastos con la asistente y registrar las órdenes de compra en el presupuesto', 'Asistente administrativa', 'fin', 5),
     P('Cierre financiero', 'Avisar a la secretaría de la división que este programa queda listo para cerrar', 'Secretaría de la división', 'sesion', -10, { e: false }),
     P('Cierre financiero', 'Enviar a Presupuestos el cuadro de cierre (programa, orden interna, fechas, abierto o cerrado, ingresos), 8 días antes de la sesión', 'Yo', 'sesion', -8, { av: true }),
-    P('Cierre financiero', 'Cierre financiero en la sesión con Presupuestos', 'Presupuestos', 'sesion', 0, { av: true }),
+    P('Cierre financiero', 'Cierre financiero en la sesión con Presupuestos', 'Presupuestos', 'sesion', 0, { av: true, h: 'Cierre financiero' }),
     P('Cierre financiero', 'Enviar el documento de cierre al gestor de facultad, al director y al decano, con copia a jefes y equipo EC', 'Yo', 'sesion', 1),
     P('Cierre financiero', 'Registro en el Cuadro Maestro', 'Yo', 'sesion', 1),
   ];
   const LIQUIDACION = [
     P('Liquidación', 'Solicitar a la asistente el montaje de dirección y coordinación, con el resumen del cierre (ventana del 20 al 30)', 'Yo', 'v20', 0, { av: true }),
-    P('Liquidación', 'Seguimiento a la orden de compra de dirección y coordinación', 'Asistente administrativa', 'v20', 21, { av: true }),
+    P('Liquidación', 'Seguimiento a la orden de compra de dirección y coordinación', 'Asistente administrativa', 'v20', 21, { av: true, h: 'Liquidación' }),
   ];
 
   window.PLANTILLAS = {
-    version: 3,
+    version: 4,
     rutas: [
       {
         clave: 'abierta', nombre: 'Oferta abierta', orden: 3,
@@ -50,19 +51,19 @@
           P('Diseño', 'Recibir la propuesta académica en el formato institucional de EC', 'Director del programa'),
           P('Diseño', 'Construir el presupuesto con el director (costos y valor del programa)', 'Yo'),
           P('Formalización', 'Presentación ante el Consejo de Facultad (la hace el director con el gestor de facultad)', 'Gestor de facultad', 'inicio', -60),
-          P('Formalización', 'Recibir el extracto del acta del Consejo de Facultad', 'Gestor de facultad', 'inicio', -50),
+          P('Formalización', 'Recibir el extracto del acta del Consejo de Facultad', 'Gestor de facultad', 'inicio', -50, { h: 'Acta del Consejo de Facultad' }),
           P('Formalización', 'Presentar ante el Consejo de Investigación y Extensión', 'Yo', 'inicio', -45, { c: 'nuevo' }),
-          P('Formalización', 'Solicitar la orden interna a Presupuestos', 'Presupuestos', 'inicio', -45, { av: true }),
+          P('Formalización', 'Solicitar la orden interna a Presupuestos', 'Presupuestos', 'inicio', -45, { av: true, h: 'Orden interna' }),
           P('Montaje', 'Montar el programa en Sala desde cero', 'Yo', 'inicio', -42, { c: 'nuevo' }),
           P('Montaje', 'Crear el nuevo grupo en Sala', 'Yo', 'inicio', -42, { c: 'cohorte' }),
           P('Montaje', 'Vincular la orden interna al programa en Sala', 'Yo', 'inicio', -40),
           P('Montaje', 'Homologación de ítem para habilitar el cobro de matrículas', 'Yo', 'inicio', -40),
           P('Montaje', 'Pedir las piezas gráficas al gestor de comunicaciones', 'Gestor de comunicaciones', 'inicio', -45),
           P('Montaje', 'Enviar la ficha para el micrositio (asistente a cargo, fechas, horarios y propuesta académica)', 'Gestor de comunicaciones', 'inicio', -40),
-          P('Montaje', 'Programa publicado en el micrositio con inscripciones abiertas', 'Gestor de comunicaciones', 'inicio', -35, { av: true }),
+          P('Montaje', 'Programa publicado en el micrositio con inscripciones abiertas', 'Gestor de comunicaciones', 'inicio', -35, { av: true, h: 'Publicado en el micrositio' }),
           P('Promoción', 'Pauta en redes sociales habilitada', 'Gestor de comunicaciones', 'inicio', -35, { e: false }),
           P('Promoción', 'Revisar leads e inscritos con la asistente administrativa', 'Asistente administrativa', 'inicio', -28, { e: false, av: true, rep: { cada: 7, hastaRef: 'inicio', hasta: -15 } }),
-          P('Apertura', 'Decisión de apertura: revisar inscritos y definir si abre, se aplaza o se cancela', 'Yo', 'inicio', -14, { av: true, k: 'decision_apertura' }),
+          P('Apertura', 'Decisión de apertura: revisar inscritos y definir si abre, se aplaza o se cancela', 'Yo', 'inicio', -14, { av: true, k: 'decision_apertura', h: 'Decisión de apertura' }),
           P('Alistamiento', 'Solicitar el aula virtual a la DIDE', 'DIDE', 'inicio', -14, { c: 'virtual' }),
           P('Alistamiento', 'Solicitar los espacios (salones)', 'Yo', 'inicio', -21, { c: 'presencial' }),
           P('Alistamiento', 'Solicitar refrigerios, estación de café, alimentación o materiales', 'Asistente administrativa', 'inicio', -14, { c: 'presencial', e: false }),
@@ -71,7 +72,7 @@
           P('Alistamiento', 'Solicitar a la DIDE la matrícula de los participantes', 'DIDE', 'inicio', -5, { c: 'virtual' }),
           P('Alistamiento', 'Bienvenida a los participantes, con credenciales de acceso al aula', 'Asistente administrativa', 'inicio', -3),
           P('Alistamiento', 'Notificar el inicio al director y al gestor de facultad, con copia al decano', 'Yo', 'inicio', -3),
-          P('Ejecución', 'Inicio del programa', 'Yo', 'inicio', 0),
+          P('Ejecución', 'Inicio del programa', 'Yo', 'inicio', 0, { h: 'Inicio' }),
           P('Ejecución', 'Visitar una clase para revisar que todo fluya', 'Yo', 'inicio', 7, { e: false, av: true }),
           P('Ejecución', 'Visitar otra clase a mitad del programa', 'Yo', 'mitad', 0, { e: false, av: true }),
           ...HONORARIOS.slice(3),
@@ -89,14 +90,14 @@
           P('Diseño', 'Recibir la estructura académica y el syllabus del director', 'Director del programa'),
           P('Diseño', 'Construir el presupuesto con el director (costos y valor)', 'Yo'),
           P('Diseño', 'Propuesta comercial PPTX auditada', 'Yo'),
-          P('Negociación', 'Enviar la propuesta al cliente', 'Yo'),
+          P('Negociación', 'Enviar la propuesta al cliente', 'Yo', null, null, { h: 'Propuesta enviada' }),
           P('Negociación', 'Seguimiento a la respuesta del cliente', 'Cliente', null, null, { av: true }),
           P('Negociación', 'Ajustes de valor, participantes o sedes', 'Yo', null, null, { e: false }),
-          P('Negociación', 'Aceptación: carta de compromiso u orden de compra', 'Cliente'),
+          P('Negociación', 'Aceptación: carta de compromiso u orden de compra', 'Cliente', null, null, { h: 'Aceptación del cliente' }),
           P('Formalización', 'Presentación ante el Consejo de Facultad (la hace el director con el gestor de facultad)', 'Gestor de facultad', 'inicio', -30),
-          P('Formalización', 'Recibir el extracto del acta del Consejo de Facultad', 'Gestor de facultad', 'inicio', -25),
+          P('Formalización', 'Recibir el extracto del acta del Consejo de Facultad', 'Gestor de facultad', 'inicio', -25, { h: 'Acta del Consejo de Facultad' }),
           P('Formalización', 'Presentar ante el Consejo de Investigación y Extensión', 'Yo', 'inicio', -30, { c: 'nuevo' }),
-          P('Formalización', 'Solicitar la orden interna a Presupuestos', 'Presupuestos', 'inicio', -25, { av: true }),
+          P('Formalización', 'Solicitar la orden interna a Presupuestos', 'Presupuestos', 'inicio', -25, { av: true, h: 'Orden interna' }),
           P('Alistamiento', 'Datos de facturación del cliente (RUT, certificación bancaria, encargado)', 'Cliente', 'inicio', -14),
           P('Alistamiento', 'Solicitar el aula virtual a la DIDE', 'DIDE', 'inicio', -14, { c: 'virtual' }),
           P('Alistamiento', 'Solicitar los espacios (salones)', 'Yo', 'inicio', -21, { c: 'presencial' }),
@@ -107,13 +108,13 @@
           P('Alistamiento', 'Solicitar a la DIDE la matrícula de los participantes', 'DIDE', 'inicio', -5, { c: 'virtual' }),
           P('Alistamiento', 'Bienvenida a los participantes, con credenciales de acceso al aula', 'Asistente administrativa', 'inicio', -3),
           P('Alistamiento', 'Notificar el inicio al director y al gestor de facultad, con copia al decano', 'Yo', 'inicio', -3),
-          P('Ejecución', 'Inicio del programa', 'Yo', 'inicio', 0),
+          P('Ejecución', 'Inicio del programa', 'Yo', 'inicio', 0, { h: 'Inicio' }),
           P('Ejecución', 'Visitar una clase para revisar que todo fluya', 'Yo', 'inicio', 7, { e: false, av: true }),
           P('Ejecución', 'Visitar otra clase a mitad del programa', 'Yo', 'mitad', 0, { e: false, av: true }),
           ...HONORARIOS.slice(3),
           ...CERTIFICACION,
           P('Cierre financiero', 'Factura al cliente emitida', 'Financiera', 'fin', 5),
-          P('Cierre financiero', 'Pago del cliente recibido', 'Cliente', 'fin', 45, { av: true }),
+          P('Cierre financiero', 'Pago del cliente recibido', 'Cliente', 'fin', 45, { av: true, h: 'Pago recibido' }),
           ...CIERRE, ...LIQUIDACION,
         ],
       },
@@ -124,16 +125,16 @@
         items: [
           P('Solicitud', 'Registrar la entidad y el curso', 'Yo'),
           P('Solicitud', 'Verificar convenio o relación previa con la entidad', 'Yo'),
-          P('Revisión', 'Formato de Aceptación de Condiciones para Aval', 'Cliente'),
+          P('Revisión', 'Formato de Aceptación de Condiciones para Aval', 'Cliente', null, null, { h: 'Condiciones aceptadas' }),
           P('Revisión', 'Revisión del contenido por la facultad', 'Gestor de facultad'),
           P('Revisión', 'Calcular el valor del aval (% sobre ingresos)', 'Yo'),
           P('Aprobación', 'Radicar ante el Consejo de Facultad', 'Yo'),
-          P('Aprobación', 'Recibir el extracto del acta con el aval aprobado', 'Gestor de facultad', null, null, { av: true }),
-          P('Aprobación', 'Documento formal de aval firmado', 'Yo'),
-          P('Operación', 'Facturación del aval', 'Financiera', 'inicio', 0),
+          P('Aprobación', 'Recibir el extracto del acta con el aval aprobado', 'Gestor de facultad', null, null, { av: true, h: 'Aval aprobado' }),
+          P('Aprobación', 'Documento formal de aval firmado', 'Yo', null, null, { h: 'Aval firmado' }),
+          P('Operación', 'Facturación del aval', 'Financiera', 'inicio', 0, { h: 'Aval facturado' }),
           P('Operación', 'Emisión o validación de certificados', 'Auxiliar administrativa', 'fin', 15),
           P('Vigencia', 'Alerta: el aval vence en 60 días', 'Yo', 'fin', -60, { e: false, av: true }),
-          P('Vigencia', 'Renovar o cerrar el aval', 'Yo', 'fin', 0),
+          P('Vigencia', 'Renovar o cerrar el aval', 'Yo', 'fin', 0, { h: 'Renovación o cierre' }),
           P('Vigencia', 'Registro en el Cuadro Maestro', 'Yo', 'fin', 0),
         ],
       },

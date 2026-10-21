@@ -27,7 +27,7 @@
   const TIPO_CM_LARGO = { 1: 'Cursos y cursos especializados (certificaciones)', 2: 'Talleres', 3: 'Diplomados', 4: 'Seminarios, congresos o simposios', 5: 'Otro' };
   const PLATAFORMAS = ['Moodle El Bosque', 'Plataforma del cliente', 'Zoom', 'Teams', 'Presencial', 'Otra'];
   const MESES_CM = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
-  const BUILD = '20261021004402';
+  const BUILD = '20261021054501';
 
   const S = {
     data: Object.fromEntries(TABLES.map(t => [t, []])),
@@ -70,6 +70,7 @@
   const aRecordar = (fecha, hora) => fecha && hora ? `${fecha}T${hora.slice(0, 5)}:00-05:00` : null;
   const localDT = ts => { if (!ts) return ''; const d = new Date(ts); return `${isoOf(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}`; };
   const fmtRecordar = ts => { if (!ts) return ''; const d = new Date(ts), f = isoOf(d); return `${relDate(f)}, ${fmtHora(pad(d.getHours()) + ':' + pad(d.getMinutes()))}`; };
+  const norm = v => String(v ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
   const money = n => (n === null || n === undefined || n === '') ? '' : '$ ' + Math.round(Number(n)).toLocaleString('es-CO');
   const byDate = k => (a, b) => (a[k] || '9999').localeCompare(b[k] || '9999');
   const opts = (list, sel, empty) => (empty !== undefined ? `<option value="">${esc(empty)}</option>` : '') +
@@ -168,7 +169,7 @@
     const items = [];
     const row = (it, orden, ids) => Array.isArray(it)
       ? { ...ids, fase: it[0], titulo: it[1], responsable: it[2], dias_ref: it[3], dias_rel: it[4], esencial: it[5], orden }
-      : { ...ids, fase: it.f, titulo: it.t, responsable: it.r, dias_ref: it.ref, dias_rel: it.d, esencial: it.e, orden, condicion: it.c, repetir: it.rep, avisar: it.av, clave: it.k };
+      : { ...ids, fase: it.f, titulo: it.t, responsable: it.r, dias_ref: it.ref, dias_rel: it.d, esencial: it.e, orden, condicion: it.c, repetir: it.rep, avisar: it.av, clave: it.k, hito: it.h || null };
     const rutas = P.rutas.map(r => {
       const ex = S.data.rutas.find(x => x.clave === r.clave);
       return { id: ex ? ex.id : uid(), clave: r.clave, nombre: r.nombre, descripcion: r.descripcion, fases: r.fases, orden: r.orden, activa: true, version: ver, _ex: !!ex };
@@ -239,6 +240,17 @@
     return 'verde';
   }
   const SEM_ORDEN = { rojo: 0, amarillo: 1, verde: 2, gris: 3 };
+
+  // ── Hitos: los momentos que marcan avance real del proyecto (vienen de la plantilla o los marcas tú) ──
+  const hitosDe = p => itemsOrdenados(p).filter(i => i.hito && i.estado !== 'no_aplica');
+  function estadoHito(i, sig) {
+    if (i.estado === 'hecho') return 'ok';
+    if (i.fecha_limite && i.fecha_limite < today()) return 'late';
+    return sig ? 'next' : 'fut';
+  }
+  const proxHito = p => hitosDe(p).find(abierto) || null;
+  function resumenHitos(p) { const h = hitosDe(p); return { n: h.length, d: h.filter(i => i.estado === 'hecho').length, sig: h.find(abierto) || null, tarde: h.filter(i => estadoHito(i) === 'late').length }; }
+  const DIAMANTE = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 .8L11.2 6 6 11.2.8 6z"/></svg>';
 
   // ── Cuadro Maestro: lo que se calcula solo ──
   const claveRuta = p => rutaDe(p)?.clave || 'cerrado';
@@ -357,11 +369,24 @@
           fecha_limite: fecha, fecha_seguimiento: null, fecha_hecho: null, plan_fecha: null, hora: null,
           recordar_at: rec && new Date(rec) > ahora ? rec : null, recordado_at: null,
           enlace: null, nota: null, esencial: !!t.esencial, dias_ref: t.dias_ref || null, dias_rel: rel ?? null,
-          condicion: t.condicion || null, clave: t.clave || null,
+          condicion: t.condicion || null, clave: t.clave || null, hito: t.hito || null,
         });
       });
     });
     return out;
+  }
+  // Marca como hito los pasos de programas creados antes de que existieran los hitos (por título de la plantilla).
+  // Un hito que desmarcas queda con texto vacío y no se vuelve a marcar.
+  async function backfillHitos() {
+    const tpl = new Map();
+    S.data.plantilla_items.filter(t => t.hito).forEach(t => tpl.set(norm(t.titulo), t.hito));
+    if (!tpl.size) return 0;
+    let n = 0;
+    for (const i of S.data.items.filter(x => x.programa_id && (x.hito === null || x.hito === undefined))) {
+      const h = tpl.get(norm(i.titulo));
+      if (h) { await db.update('items', i.id, { hito: h }); n++; }
+    }
+    return n;
   }
   async function touch(pid) { if (pid) await db.update('programas', pid, { actualizado: nowIso() }); }
 
@@ -398,6 +423,7 @@
     list: I('<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>'),
     board: I('<rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="10" y="4" width="5" height="11" rx="1.5"/><rect x="17" y="4" width="4" height="7" rx="1.5"/>'),
     gantt: I('<path d="M4 4v16h16"/><path d="M7 8h7M10 12h8M8 16h5" stroke-width="3"/>'),
+    spark: I('<path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z"/>'),
     review: I('<path d="M4 12a8 8 0 1 0 2.4-5.7L4 8.5"/><path d="M4 4v4.5h4.5M12 8v4l3 2"/>'),
     check: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
   };
@@ -455,12 +481,12 @@
         <div class="brand"><span class="brand-mark">${ICON.flag}</span>Rumbo</div>
         <button class="btn primary side-new" data-act="nuevo">${ICON.plus}<span>Nuevo programa</span></button>
         <nav class="side-nav">${nb('inicio', 'Inicio', ICON.home)}${nb('hoy', 'Mi día', ICON.sun)}${nb('calendario', 'Calendario', ICON.cal)}${nb('programas', 'Programas', ICON.prog)}${nb('mas', 'Más', ICON.more)}</nav>
-        <button class="side-cap" data-act="captura">${ICON.note}<span>Captura rápida</span></button>
+        <button class="side-cap" data-act="captura">${ICON.note}<span>Registro rápido</span></button>
       </aside>
       <main>${body}</main>
       <nav class="bottom-nav">
         ${nb('inicio', 'Inicio', ICON.home)}${nb('hoy', 'Mi día', ICON.sun)}
-        <button class="nav-plus" data-act="captura" aria-label="Captura rápida">${ICON.plus}</button>
+        <button class="nav-plus" data-act="captura" aria-label="Registro rápido">${ICON.plus}</button>
         ${nb('calendario', 'Calendario', ICON.cal)}${nb('programas', 'Programas', ICON.prog)}
       </nav>`;
   }
@@ -590,12 +616,13 @@
     if (i.estado === 'en_curso') sub.push('En curso');
     if (p && !i.esencial) sub.push('opcional');
     if (i.recordar_at && !i.recordado_at && abierto(i)) sub.push(`<span class="rec">${ICON.bell}${fmtRecordar(i.recordar_at)}</span>`);
+    if (i.hito && showProg) sub.unshift(`<b class="hito-t">Hito: ${esc(i.hito)}</b>`);
     if (i.nota) sub.push('con nota');
     const cls = i.estado === 'hecho' ? 'done' : i.estado === 'no_aplica' ? 'na-row' : '';
     const chk = i.estado === 'hecho' ? 'on' : i.estado === 'no_aplica' ? 'na' : '';
     return `<div class="li ${cls}" data-act="edit-item" data-id="${i.id}">
       <button class="check ${chk}" data-act="toggle" data-id="${i.id}" aria-label="Marcar como hecho">${i.estado === 'hecho' ? ICON.check : i.estado === 'no_aplica' ? '–' : ''}</button>
-      <div class="grow"><div class="title">${i.prioridad && abierto(i) ? `<span class="star-on">${ICON.starOn}</span>` : ''}${esc(i.titulo)}</div>${sub.length ? `<div class="sub">${sub.join(' · ')}</div>` : ''}</div>
+      <div class="grow"><div class="title">${i.hito ? `<span class="hito-ic ${estadoHito(i)}" title="Hito: ${esc(i.hito)}">${DIAMANTE}</span>` : ''}${i.prioridad && abierto(i) ? `<span class="star-on">${ICON.starOn}</span>` : ''}${esc(i.titulo)}</div>${sub.length ? `<div class="sub">${sub.join(' · ')}</div>` : ''}</div>
       ${i.enlace ? `<a class="icon-btn" href="${esc(i.enlace)}" target="_blank" rel="noopener" data-act="noop" aria-label="Abrir enlace">${ICON.link}</a>` : ''}
       ${acciones || pill}
     </div>`;
@@ -660,6 +687,12 @@
     activos.forEach(p => { const a = avance(p); hechos += a.d; total += a.n; });
     const pct = total ? Math.round(hechos * 100 / total) : 0;
     const alDia = activos.filter(p => semaforo(p) === 'verde').length;
+    let hitN = 0, hitD = 0;
+    const proxHitos = activos.map(p => { const r = resumenHitos(p); hitN += r.n; hitD += r.d; return [p, r.sig]; }).filter(x => x[1])
+      .sort((a, b) => (a[1].fecha_limite || '9999').localeCompare(b[1].fecha_limite || '9999'));
+    const filaHito = ([p, h]) => { const e = estadoHito(h, true); return `<div class="li" data-act="open" data-id="${p.id}"><span class="hito-ic big ${e}">${DIAMANTE}</span>
+      <div class="grow"><div class="title ellipsis">${esc(h.hito)}</div><div class="sub ellipsis">${esc(nombreProg(p))} · ${esc(h.responsable || 'Yo')}</div></div>
+      ${h.fecha_limite ? `<span class="pill ${e === 'late' ? 'red' : diffDays(h.fecha_limite, t) <= 7 ? 'amber' : ''}">${relDate(h.fecha_limite)}</span>` : '<span class="pill">Sin fecha</span>'}</div>`; };
     const cartera = activos.reduce((s, p) => s + ingresosCM(p), 0);
     const incompletos = activos.filter(p => faltantesCM(p).length);
     const margenes = activos.filter(p => p.margen !== null && p.margen !== undefined && p.margen !== '');
@@ -678,7 +711,7 @@
           ${ring(pct, 92, 9)}
           <div class="grow"><h2>Avance del portafolio</h2>
             <p>${hechos} de ${total} pasos esenciales completos en ${plural(activos.length, 'programa activo', 'programas activos')}.</p>
-            <p class="hero-sub">${alDia === activos.length ? 'Todo al día.' : `${plural(alDia, 'programa', 'programas')} al día, ${activos.length - alDia} con algo por atender.`}</p></div>
+            <p class="hero-sub">${alDia === activos.length ? 'Todo al día.' : `${plural(alDia, 'programa', 'programas')} al día, ${activos.length - alDia} con algo por atender.`}${hitN ? ` Hitos: ${hitD} de ${hitN}.` : ''}</p></div>
         </div>
         <div class="kpis">
           ${kpi(ICON.folder, 'violet', activos.length, 'Programas activos', 'nav-programas')}
@@ -688,18 +721,19 @@
         </div>
         ${cartera ? `<div class="card money-card"><span class="kpi-ic violet">${ICON.money}</span><div class="grow"><span class="muted small">Ingresos en cartera</span><b>${money(cartera)}</b></div>
           ${margen !== null ? `<div class="mg"><span class="muted small">Margen promedio</span><b>${margen} %</b></div>` : ''}</div>` : ''}
-        <div class="card money-card cm-dash" data-act="${incompletos.length ? 'open' : 'export-csv'}" data-id="${incompletos[0]?.id || ''}" role="button">
+        <div class="card money-card cm-dash" data-act="${incompletos.length ? 'open' : 'export-xlsx'}" data-id="${incompletos[0]?.id || ''}" role="button">
           <span class="kpi-ic ${incompletos.length ? 'amber' : 'green'}">${ICON.tpl}</span>
           <div class="grow"><span class="muted small">Cuadro Maestro</span><b style="font-size:16px">${incompletos.length ? `${plural(incompletos.length, 'programa')} con datos por completar` : 'Todo listo para exportar'}</b></div>
           <span class="muted">${ICON.next}</span></div>
         <div class="quick">
-          ${qa(ICON.plus, 'Nuevo programa', 'nuevo')}${qa(ICON.note, 'Captura', 'captura')}${qa(ICON.sun, 'Mi día', 'nav', ' data-to="hoy"')}${qa(ICON.download, 'Exportar', 'export-csv')}
+          ${qa(ICON.plus, 'Nuevo programa', 'nuevo')}${qa(ICON.note, 'Registrar', 'captura')}${qa(ICON.sun, 'Mi día', 'nav', ' data-to="hoy"')}${qa(ICON.download, 'Exportar', 'export-xlsx')}
         </div>
       </div>
       <div class="dash-cols">
         <div>
           ${seccion('Requiere tu atención', atencion.slice(0, 6).map(i => itemRow(i)).join(''), atencion.length, 'Nada vencido ni seguimientos pendientes. Vas al día.',
             atencion.length > 6 ? '<button class="link" data-act="nav" data-to="calendario">Ver todo</button>' : '')}
+          ${proxHitos.length ? seccion('Próximos hitos', proxHitos.slice(0, 6).map(filaHito).join(''), proxHitos.length, '', '<span class="tiny muted">Uno por programa</span>') : ''}
           ${seccion('Próximos 7 días', semana.slice(0, 6).map(i => itemRow(i)).join(''), semana.length, 'Semana despejada.',
             semana.length > 6 ? '<button class="link" data-act="nav" data-to="calendario">Ver calendario</button>' : '')}
           ${seccion('Avance por programa', porAvance.map(progAvanceRow).join(''), undefined, 'Sin programas activos.',
@@ -831,8 +865,8 @@
     activos.forEach(p => {
       if (p.fecha_inicio > t && p.fecha_inicio <= fin14) viene.push([p.fecha_inicio, `Inicia ${nombreProg(p)}`, p.id]);
       if (p.fecha_fin > t && p.fecha_fin <= fin14) viene.push([p.fecha_fin, `Termina ${nombreProg(p)}`, p.id]);
-      itemsDe(p.id).filter(i => abierto(i) && i.fecha_limite > t && i.fecha_limite <= fin14 && (i.clave === 'decision_apertura' || (i.dias_ref === 'sesion' && i.dias_rel === 0) || i.dias_ref === 'v20'))
-        .forEach(i => viene.push([i.fecha_limite, `${i.titulo.split('(')[0].trim()} · ${nombreProg(p)}`, p.id]));
+      itemsDe(p.id).filter(i => abierto(i) && i.fecha_limite > t && i.fecha_limite <= fin14 && (i.hito || i.clave === 'decision_apertura' || (i.dias_ref === 'sesion' && i.dias_rel === 0) || i.dias_ref === 'v20'))
+        .forEach(i => viene.push([i.fecha_limite, `${i.hito ? 'Hito: ' + i.hito : i.titulo.split('(')[0].trim()} · ${nombreProg(p)}`, p.id]));
     });
     S.data.sesiones_cierre.filter(x => x.fecha > t && x.fecha <= fin14).forEach(x => viene.push([x.fecha, 'Sesión de cierre financiero con Presupuestos', null]));
     viene.sort((a, b) => a[0].localeCompare(b[0]));
@@ -940,7 +974,7 @@
     for (let d = 1; d <= dias; d++) {
       const iso = `${y}-${pad(m)}-${pad(d)}`, e = (ev[iso] || []).filter(x => x.k !== 'hecho');
       const venc = e.some(x => (x.k === 'paso' || x.k === 'seg') && iso < t);
-      const marcas = [...new Set(e.map(x => x.k === 'inicio' || x.k === 'fin' || x.k === 'sesion' ? 'prog' : venc ? 'venc' : x.k))].slice(0, 3);
+      const marcas = [...new Set(e.map(x => x.k === 'inicio' || x.k === 'fin' || x.k === 'sesion' ? 'prog' : x.i?.hito ? 'hito' : venc ? 'venc' : x.k))].slice(0, 3);
       celdas += `<button class="cd ${iso === t ? 'today' : ''} ${iso === S.cal.dia ? 'sel' : ''}" data-act="cal-dia" data-d="${iso}" aria-label="${d}${e.length ? ', ' + plural(e.length, 'evento') : ''}">
         <span>${d}</span><i>${marcas.map(c => `<em class="mk ${c}"></em>`).join('')}</i></button>`;
     }
@@ -960,7 +994,7 @@
             <b class="cap">${esc(titulo)}</b><button class="icon-btn" data-act="cal-mes" data-n="1" aria-label="Mes siguiente">${ICON.next}</button></div>
           <div class="cal-grid wk">${['L', 'M', 'M', 'J', 'V', 'S', 'D'].map(d => `<span>${d}</span>`).join('')}</div>
           <div class="cal-grid">${celdas}</div>
-          <div class="cal-key"><span><em class="mk paso"></em>Paso</span><span><em class="mk seg"></em>Seguimiento</span><span><em class="mk venc"></em>Vencido</span><span><em class="mk prog"></em>Inicio, fin o cierre</span></div>
+          <div class="cal-key"><span><em class="mk paso"></em>Paso</span><span><em class="mk seg"></em>Seguimiento</span><span><em class="mk venc"></em>Vencido</span><span><em class="mk hito"></em>Hito</span><span><em class="mk prog"></em>Inicio, fin o cierre</span></div>
         </div>
         <div>
           <div class="kpis kpis-3">
@@ -1007,7 +1041,28 @@
         <div><span>Ingresos</span><b>${ingresosCM(p) ? moneyCorto(ingresosCM(p)) : '—'}</b></div>
       </div>
       ${nx ? `<div class="pc-next"><span class="muted">Siguiente:</span> <span class="ellipsis grow">${esc(nx.titulo)}</span>${fx ? `<span class="pill ${fx < t ? 'red' : fx <= addDays(t, 3) ? 'amber' : ''}">${relDate(fx)}</span>` : ''}</div>` : ''}
+      ${hitoLinea(p)}
     </div>`;
+  }
+  function hitoLinea(p) {
+    const r = resumenHitos(p);
+    if (!r.n) return '';
+    const h = r.sig, e = h ? estadoHito(h, true) : 'ok';
+    return `<div class="pc-hito"><span class="hito-ic ${e}">${DIAMANTE}</span><span class="ellipsis grow">${h ? `<span class="muted">Hito:</span> ${esc(h.hito)}` : 'Todos los hitos cumplidos'}</span>
+      <span class="tiny muted">${r.d}/${r.n}</span>${h && h.fecha_limite ? `<span class="pill ${e === 'late' ? 'red' : ''}">${relDate(h.fecha_limite)}</span>` : ''}</div>`;
+  }
+  function cardHitos(p) {
+    const hs = hitosDe(p);
+    if (!hs.length) return '';
+    const r = resumenHitos(p), sig = r.sig;
+    const nodo = i => {
+      const e = estadoHito(i, i === sig), f = i.estado === 'hecho' ? (i.fecha_hecho || i.fecha_limite) : i.fecha_limite;
+      return `<button class="hn ${e}" data-act="edit-item" data-id="${i.id}"><i>${e === 'ok' ? ICON.check : DIAMANTE}</i><b>${esc(i.hito)}</b><span>${f ? (e === 'ok' ? fmtDate(f) : relDate(f)) : 'Sin fecha'}</span></button>`;
+    };
+    return `<div class="card pad hitos section">
+      <div class="row between"><div><h2>Hitos</h2><p class="small muted" style="margin:2px 0 0">${r.d} de ${r.n} cumplidos${sig ? ` · Próximo: <b>${esc(sig.hito)}</b>` : ''}</p></div>
+        ${r.tarde ? `<span class="pill red">${plural(r.tarde, 'atrasado', 'atrasados')}</span>` : sig ? '' : '<span class="pill green">Completo</span>'}</div>
+      <div class="htrack">${hs.map(nodo).join('')}</div></div>`;
   }
   function listaProgramas() {
     const ps = programasFiltrados();
@@ -1031,6 +1086,7 @@
         <div class="tiny muted ellipsis">${esc(empresaTxt(p))}</div>
         <div class="bar" style="margin:6px 0"><i style="width:${av.pct}%"></i></div>
         ${nx ? `<div class="tiny ellipsis">${esc(nx.titulo)}</div>` : ''}
+        ${proxHito(p) ? `<div class="tiny ellipsis hito-mini"><span class="hito-ic ${estadoHito(proxHito(p), true)}">${DIAMANTE}</span>${esc(proxHito(p).hito)}</div>` : ''}
         <div class="row wrap" style="gap:4px;margin-top:6px">${saludPill(p)}${fx ? `<span class="pill ${fx < t ? 'red' : fx <= addDays(t, 3) ? 'amber' : ''}">${relDate(fx)}</span>` : ''}${p.fecha_inicio ? `<span class="pill">Inicio ${fmtDate(p.fecha_inicio)}</span>` : ''}</div>
       </div>`;
     };
@@ -1051,21 +1107,22 @@
     const fila = p => {
       const ini = p.fecha_inicio, fin = p.fecha_fin || p.fecha_inicio, cierre = finDe(p), r = rutaDe(p);
       const dec = itemsDe(p.id).find(i => i.clave === 'decision_apertura');
-      const ses = itemsDe(p.id).find(i => i.dias_ref === 'sesion' && i.dias_rel === 0);
+      const ses = itemsDe(p.id).find(i => i.dias_ref === 'sesion' && i.dias_rel === 0), hs = hitosDe(p);
       const w = Math.max(1.2, X(fin) - X(ini));
       return `<div class="gt-row" data-act="open" data-id="${p.id}">
         <div class="gt-name"><span class="dot ${semaforo(p)}"></span><span class="ellipsis">${esc(nombreProg(p))}</span></div>
         <div class="gt-track"><i class="gt-today" style="left:${X(t)}%"></i>
           ${cierre > fin ? `<i class="gt-tail" style="left:${X(fin)}%;width:${X(cierre) - X(fin)}%"></i>` : ''}
           <i class="gt-bar" style="left:${X(ini)}%;width:${w}%;--rc:${COL_RUTA[r?.clave] || 'var(--accent)'}" title="${esc(fmtDate(ini))} a ${esc(fmtDate(fin))}"></i>
+          ${hs.length ? hs.map(i => { const f = i.estado === 'hecho' ? (i.fecha_hecho || i.fecha_limite) : i.fecha_limite; return f ? `<em class="gt-mk h ${estadoHito(i)}" style="left:${X(f)}%" title="${esc(i.hito)} · ${esc(fmtDate(f))}"></em>` : ''; }).join('') : `
           ${dec && dec.fecha_limite ? `<em class="gt-mk dec ${abierto(dec) ? '' : 'ok'}" style="left:${X(dec.fecha_limite)}%" title="Decisión de apertura ${esc(fmtDate(dec.fecha_limite))}"></em>` : ''}
-          ${ses && ses.fecha_limite ? `<em class="gt-mk ses" style="left:${X(ses.fecha_limite)}%" title="Cierre financiero ${esc(fmtDate(ses.fecha_limite))}"></em>` : ''}
+          ${ses && ses.fecha_limite ? `<em class="gt-mk ses" style="left:${X(ses.fecha_limite)}%" title="Cierre financiero ${esc(fmtDate(ses.fecha_limite))}"></em>` : ''}`}
         </div></div>`;
     };
     return `<div class="card pad gantt">
       <div class="gt-head"><div class="gt-name tiny muted">${parse(lo).getFullYear() === parse(hi).getFullYear() ? parse(lo).getFullYear() : parse(lo).getFullYear() + ' a ' + parse(hi).getFullYear()}</div><div class="gt-track">${meses.map((m, k) => (k % Math.ceil(meses.length / 7) === 0) ? `<span style="left:${X(m)}%">${MESES[parse(m).getMonth()]}</span>` : '').join('')}</div></div>
       <div class="gt-body">${ps.map(fila).join('')}</div>
-      <div class="cal-key" style="margin-top:12px"><span><i class="kb"></i>Ejecución</span><span><i class="kb tail"></i>Cierre y liquidación</span><span><em class="gt-mk dec" style="position:static"></em>Decisión de apertura</span><span><em class="gt-mk ses" style="position:static"></em>Sesión de cierre</span><span><i class="kb today"></i>Hoy</span></div>
+      <div class="cal-key" style="margin-top:12px"><span><i class="kb"></i>Ejecución</span><span><i class="kb tail"></i>Cierre y liquidación</span><span><em class="gt-mk h ok" style="position:static"></em>Hito cumplido</span><span><em class="gt-mk h fut" style="position:static"></em>Hito pendiente</span><span><em class="gt-mk h late" style="position:static"></em>Hito atrasado</span><span><i class="kb today"></i>Hoy</span></div>
     </div>${sin.length ? `<p class="tiny muted" style="margin-top:8px">Sin fecha de inicio: ${sin.map(p => esc(nombreProg(p))).join(', ')}.</p>` : ''}`;
   }
   function viewProgramas() {
@@ -1074,7 +1131,7 @@
     const n = e => S.data.programas.filter(p => e === 'todos' || p.estado === e).length;
     const chip = (v, l) => `<button class="chip ${S.f.estado === v ? 'on' : ''}" data-act="f-estado" data-v="${v}">${l}<span>${n(v)}</span></button>`;
     return `
-      <div class="page-head"><h1>Programas</h1><div class="row"><button class="btn primary" data-act="nuevo">${ICON.plus}<span>Nuevo</span></button>${avatarBtn()}</div></div>
+      <div class="page-head"><h1>Programas</h1><div class="row"><button class="icon-btn" data-act="export-xlsx" aria-label="Exportar Cuadro Maestro en Excel" title="Exportar Cuadro Maestro">${ICON.download}</button><button class="btn primary" data-act="nuevo">${ICON.plus}<span>Nuevo</span></button>${avatarBtn()}</div></div>
       <div class="filters">
         <input class="input search" type="search" placeholder="Buscar programa, entidad, facultad…" value="${esc(S.f.q)}" data-input="buscar">
         <select class="input" data-change="f-ruta">${opts(S.data.rutas.map(r => [r.id, r.nombre]), S.f.ruta, 'Todas las rutas')}</select>
@@ -1117,12 +1174,14 @@
       </div>
       <div class="card list section">
         ${row(ICON.tpl, 'Plantillas', 'nav', ' data-to="plantillas"', 'Rutas y módulos con los que nace cada programa')}
-        ${row(ICON.download, 'Exportar al Cuadro Maestro', 'export-csv', '', 'CSV con las columnas de la hoja BD, listo para pegar')}
+        ${row(ICON.download, 'Exportar Cuadro Maestro (Excel)', 'export-xlsx', '', 'Hoja BD lista para pegar, más seguimiento, hitos y pendientes')}
+        ${row(ICON.download, 'Exportar solo la hoja BD (CSV)', 'export-csv', '', 'Mismas columnas, separadas por punto y coma')}
         ${row(ICON.download, 'Descargar respaldo', 'export-json', '', 'Copia completa en JSON')}
         <label class="li menu-li"><span class="kpi-ic violet">${ICON.upload}</span><div class="grow"><div class="title">Importar respaldo</div><div class="sub">Desde un archivo JSON</div></div><input type="file" accept="application/json,.json" data-change="import" hidden></label>
       </div>
       ${cardSesiones()}
       ${avisosCard(false)}
+      ${cardIA()}
       ${S.mode === 'remote' ? `<button class="btn danger section" style="width:100%" data-act="logout">${ICON.out}<span>Cerrar sesión</span></button>` : ''}
       <p class="tiny muted" style="text-align:center;margin-top:16px">Versión ${esc(BUILD)}</p>`;
   }
@@ -1208,6 +1267,7 @@
             <div class="muted small" style="margin-top:4px">${esc(empresaTxt(p))} · ${esc(rutaDe(p)?.nombre || '')}${mods.length ? ' + ' + esc(mods.join(', ')) : ''}</div>
             ${p.estado === 'activo' ? `<div class="row wrap" style="margin-top:8px;gap:6px">${SEM_TXT[sem] ? `<span class="pill ${SEM_PILL[sem]}">${SEM_TXT[sem]}</span>` : ''}${saludPill(p)}
               <button class="mini" data-act="salud" data-id="${p.id}">${p.salud ? 'Actualizar estado' : 'Dar estado'}</button></div>
+              <button class="btn primary sm avance-btn" data-act="avance" data-id="${p.id}">${ICON.check}<span>Registrar avance</span></button>
               ${p.salud_nota ? `<p class="small muted" style="margin:6px 0 0">${esc(p.salud_nota)} <span class="tiny">· ${fmtDate(p.salud_fecha)}</span></p>` : ''}` : ''}</div>
         </div>
         ${p.estado === 'perdido' && p.motivo_perdida ? `<p class="small" style="color:var(--red)">Motivo: ${esc(p.motivo_perdida)}</p>` : ''}
@@ -1221,6 +1281,7 @@
         ${p.notas ? `<p class="small muted" style="white-space:pre-wrap;margin:12px 0 0">${esc(p.notas)}</p>` : ''}
       </div>
       ${cardDecision(p)}
+      ${cardHitos(p)}
       ${cardCM(p)}
       <div class="tabs">${tb('checklist', `Checklist <span>${abiertos.length}</span>`)}${tb('bitacora', 'Bitácora')}${tb('documentos', 'Documentos')}${tb('contactos', 'Contactos')}${tb('dinero', 'Facturación')}</div>
       ${content}`;
@@ -1485,6 +1546,12 @@
     if (nuevo) {
       modal(`<form data-form="programa" data-id="">
         ${sheetHead('Nuevo programa')}
+        <details class="more pegar"><summary>${ICON.note}<span>Llenar desde un correo o texto</span></summary>
+          <textarea class="input" name="_texto" rows="4" placeholder="Pega aquí el correo del cliente, la solicitud o tus notas de la reunión"></textarea>
+          <div class="row" style="gap:8px;margin-top:8px"><button type="button" class="btn sm" data-act="prog-texto">Llenar campos</button>${IA.on ? `<button type="button" class="btn sm ia-btn" data-act="prog-ia">${ICON.spark}<span>Llenar con IA</span></button>` : ''}</div>
+          <p class="small extra-cap" hidden></p>
+          ${['horas', 'participantes', 'valor', 'facultad', 'director'].map(k => `<input type="hidden" name="x_${k}">`).join('')}
+        </details>
         ${fld('Nombre del programa', inp('nombre', '', 'required autofocus placeholder="Ej.: Curso Accesos Vasculares Seguros"'))}
         ${fld('Ruta', `<input type="hidden" name="ruta_id" value="${rutas.find(r => r.clave === 'cerrado')?.id || rutas[0]?.id || ''}">
           <div class="seg" data-seg-ruta>${rutas.map(r => `<button type="button" class="${r.clave === 'cerrado' ? 'on' : ''}" data-act="seg-ruta" data-id="${r.id}" data-clave="${r.clave}">${esc(r.nombre)}</button>`).join('')}</div>`)}
@@ -1548,6 +1615,8 @@
       ${fld('Título', inp('titulo', i.titulo, 'required'))}
       ${fld('Estado', seg('estado', Object.entries(ESTADOS_ITEM), i.estado))}
       <label class="small row" style="margin-bottom:12px"><input type="checkbox" name="prioridad" ${i.prioridad ? 'checked' : ''}> Prioritaria: va primero en tu agenda</label>
+      ${p ? `<label class="small row" style="margin-bottom:8px"><input type="checkbox" name="es_hito" ${i.hito ? 'checked' : ''}> Es un hito del proyecto</label>
+        ${fld('Nombre del hito', inp('hito', i.hito || '', `placeholder="Ej.: Orden interna"`))}` : ''}
       <h4 class="fsec">Mi día</h4>
       <div class="two">${fld('Hacerlo el', inp('plan_fecha', i.plan_fecha, 'type="date"'))}${fld('Hora', inp('hora', i.hora ? i.hora.slice(0, 5) : '', 'type="time"'))}</div>
       <div class="chips" style="margin:-4px 0 12px">
@@ -1579,23 +1648,312 @@
     applyShow($('#modal-root form'), i.estado);
   }
 
-  function formCaptura() {
+  // ───────────── Registro rápido: entender lo que escribes (sin costo, en el dispositivo) ─────────────
+  // Reconoce programa, fecha, hora, tipo (tarea, esperando, avance, nota), de quién se espera y qué paso se cumplió.
+  const STOP = new Set(('curso cursos diplomado programa programas seminario taller congreso simposio jornada foro microcredencial certificacion rotacion aval ' +
+    'para sobre con del los las una uno que por como mas pero este esta esto ese esa hay ser sus nos les fue era son hoy ayer manana tarde noche ' +
+    'gestion atencion integral actualizacion salud internacional avanzado avanzada manejo nacional cuidado cuidados clinica clinico basico ' +
+    'enviar envie envio pedir solicitar recibir recibi revisar llamar hablar hable confirmar listo hecho ya quedo quedamos falta pendiente semana dias dia ' +
+    'lunes martes miercoles jueves viernes sabado domingo nota esperando espero').split(' '));
+  const palabras = t => norm(t).replace(/[^a-z0-9ñ ]/g, ' ').split(' ').filter(w => w.length >= 4 && !STOP.has(w));
+  const MES_N = { ene: 0, enero: 0, feb: 1, febrero: 1, mar: 2, marzo: 2, abr: 3, abril: 3, may: 4, mayo: 4, jun: 5, junio: 5, jul: 6, julio: 6,
+    ago: 7, agosto: 7, sep: 8, sept: 8, septiembre: 8, set: 8, oct: 9, octubre: 9, nov: 10, noviembre: 10, dic: 11, diciembre: 11 };
+  const DIA_N = { domingo: 0, lunes: 1, martes: 2, miercoles: 3, jueves: 4, viernes: 5, sabado: 6 };
+  const CARGOS_TXT = [
+    [/\bpresupuestos\b|\ba presupuesto\b/, 'Presupuestos'], [/\bfinanzas\b/, 'Finanzas'], [/\bdide\b/, 'DIDE'],
+    [/\b(director|directora|docente encargad[oa])\b/, 'Director del programa'], [/\basistente\b/, 'Asistente administrativa'],
+    [/\bauxiliar\b/, 'Auxiliar administrativa'], [/\bcomunicaciones\b/, 'Gestor de comunicaciones'], [/\bgestora? de (la )?facultad\b/, 'Gestor de facultad'],
+    [/\bsecretaria\b/, 'Secretaría de la división'], [/\bgerente administrativ[oa]\b/, 'Gerente administrativo'], [/\bjuridica\b/, 'Jurídica'],
+    [/\bfinanciera\b/, 'Financiera'], [/\bproveedor\b/, 'Proveedor'], [/\bdecan[oa]\b/, 'Facultad'], [/\bcliente\b/, 'Cliente'],
+  ];
+  function leerFecha(tx) {
+    // tx ya normalizado (sin tildes, minúsculas). Devuelve { f, m } con la fecha ISO y el fragmento reconocido.
+    const t = today(), hoyD = parse(t);
+    let m;
+    if ((m = tx.match(/\bpasado manana\b/))) return { f: addDays(t, 2), m: m[0] };
+    if ((m = tx.match(/\b(para |el |de )?manana\b/)) && !/\b(en|por|de) la manana\b/.test(tx)) return { f: addDays(t, 1), m: m[0] };
+    if ((m = tx.match(/\b(para )?hoy\b/))) return { f: t, m: m[0] };
+    if ((m = tx.match(/\ben (\d{1,2}|un|una|dos|tres|cuatro|cinco) (dias?|semanas?)\b/))) {
+      const n = { un: 1, una: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5 }[m[1]] || Number(m[1]);
+      return { f: addDays(t, /semana/.test(m[2]) ? n * 7 : n), m: m[0] };
+    }
+    if ((m = tx.match(/\b(la )?(proxima|siguiente) semana\b/))) { const x = parse(t); x.setDate(x.getDate() + ((8 - x.getDay()) % 7 || 7)); return { f: isoOf(x), m: m[0] }; }
+    if ((m = tx.match(/\b(el |este |para el |proximo |el proximo )?(lunes|martes|miercoles|jueves|viernes|sabado|domingo)( proximo)?\b/))) {
+      const target = DIA_N[m[2]], x = parse(t); let k = (target - x.getDay() + 7) % 7;
+      if (k === 0 || /proximo/.test(m[0])) k = k === 0 ? 7 : k;
+      x.setDate(x.getDate() + k); return { f: isoOf(x), m: m[0] };
+    }
+    if ((m = tx.match(/\b(el )?(\d{1,2}) (de )?(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|sept|setiembre|octubre|noviembre|diciembre|ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)\b( (de )?(\d{4}))?/))) {
+      const mes = MES_N[m[4] === 'setiembre' ? 'sep' : m[4]], dia = Number(m[2]);
+      let y = m[7] ? Number(m[7]) : hoyD.getFullYear();
+      let d = new Date(y, mes, dia); if (!m[7] && isoOf(d) < addDays(t, -30)) d = new Date(y + 1, mes, dia);
+      return { f: isoOf(d), m: m[0] };
+    }
+    if ((m = tx.match(/\b(\d{1,2})\/(\d{1,2})(\/(\d{2,4}))?\b/))) {
+      let y = m[4] ? Number(m[4].length === 2 ? '20' + m[4] : m[4]) : hoyD.getFullYear();
+      let d = new Date(y, Number(m[2]) - 1, Number(m[1])); if (!m[4] && isoOf(d) < addDays(t, -30)) d = new Date(y + 1, Number(m[2]) - 1, Number(m[1]));
+      if (!isNaN(d)) return { f: isoOf(d), m: m[0] };
+    }
+    if ((m = tx.match(/\bel (\d{1,2})\b(?! de)/))) {
+      const dia = Number(m[1]); if (dia >= 1 && dia <= 31) {
+        let d = new Date(hoyD.getFullYear(), hoyD.getMonth(), dia); if (isoOf(d) < t) d = new Date(hoyD.getFullYear(), hoyD.getMonth() + 1, dia);
+        return { f: isoOf(d), m: m[0] };
+      }
+    }
+    return null;
+  }
+  function leerHora(tx) {
+    let m;
+    if ((m = tx.match(/\b(a las |a la )?(\d{1,2})(:(\d{2}))? ?(a\.? ?m\.?|p\.? ?m\.?)(?=\s|$|[.,;])/))) {
+      let h = Number(m[2]) % 12; if (/p/.test(m[5])) h += 12;
+      return { h: `${pad(h)}:${m[4] || '00'}`, m: m[0] };
+    }
+    if ((m = tx.match(/\b(a las )?([01]?\d|2[0-3]):([0-5]\d)\b/))) return { h: `${pad(Number(m[2]))}:${m[3]}`, m: m[0] };
+    if ((m = tx.match(/\ba las (\d{1,2})( y media)?\b/))) {
+      let h = Number(m[1]); if (h >= 1 && h <= 6) h += 12; if (h > 23) return null;
+      return { h: `${pad(h)}:${m[2] ? '30' : '00'}`, m: m[0] };
+    }
+    return null;
+  }
+  // Programa al que se refiere el texto: por palabras distintivas del nombre, el nombre corto y la entidad
+  function adivinarPrograma(tx) {
+    const w = new Set(palabras(tx)), txn = ' ' + norm(tx) + ' ';
+    let mejor = null, max = 0, empate = false;
+    for (const p of S.data.programas.filter(x => x.estado === 'activo')) {
+      let sc = 0;
+      const corto = norm(p.nombre_corto || '');
+      if (corto && corto.length >= 4 && txn.includes(' ' + corto)) sc += 3;
+      palabras(p.nombre).forEach(k => { if (w.has(k)) sc += k.length >= 7 ? 1.5 : 1; });
+      const ent = entidadDe(p)?.nombre;
+      if (ent) palabras(ent).forEach(k => { if (w.has(k)) sc += 2.5; });
+      // Siglas del nombre o de la entidad (APS, MSD, ACHO, HOMI…)
+      [p.nombre, ent || ''].join(' ').match(/\b[A-ZÁÉÍÓÚÑ]{3,}\b/g)?.forEach(sg => { if (new RegExp(`\\b${norm(sg)}\\b`).test(norm(tx))) sc += 2; });
+      if (sc > max) { max = sc; mejor = p; empate = false; } else if (sc === max && sc > 0) empate = true;
+    }
+    return max >= 1.5 && !empate ? mejor : null;
+  }
+  // Paso abierto que el texto da por cumplido (para "Avance")
+  function adivinarPaso(p, tx) {
+    if (!p) return null;
+    const w = new Set(palabras(tx)), txn = norm(tx);
+    let mejor = null, max = 0;
+    for (const i of itemsOrdenados(p).filter(x => abierto(x))) {
+      let sc = 0;
+      palabras(i.titulo).forEach(k => { if (w.has(k)) sc += 1; });
+      if (i.hito && txn.includes(norm(i.hito))) sc += 3;
+      if (i.fase === faseActual(p)) sc += 0.3;
+      if (sc > max) { max = sc; mejor = i; }
+    }
+    return max >= 1.3 ? mejor : null;
+  }
+  function entender(texto) {
+    const crudo = String(texto || ''), tx = norm(crudo);
+    const r = { tipo: 'tarea', programa: null, fecha: null, hora: null, esperando_a: null, paso: null, titulo: crudo.trim() };
+    if (!tx) return r;
+    if (/^nota\b|^(acordamos|quedamos en que|me dijeron|me informan|informaron)\b/.test(tx)) r.tipo = 'nota';
+    else if (/^(listo|hecho|ya)\b|\b(ya (llego|envie|enviaron|quedo|salio|tenemos|recibi|esta)|se (recibio|envio|aprobo)|recibi|aprobaron|aprobado|firmad[oa]|llego)\b/.test(tx)) r.tipo = 'avance';
+    else if (/\b(esperando|espero|queda(ron)? de|quedo de|qued[oó] en|me (envia|manda|enviara|confirma|debe)|enviara|mandara|confirmara|pendiente de que)\b/.test(tx)) r.tipo = 'esperando';
+    r.programa = adivinarPrograma(crudo);
+    const f = leerFecha(tx), h = leerHora(tx);
+    if (f) r.fecha = f.f; if (h) r.hora = h.h;
+    for (const [re, cargo] of CARGOS_TXT) if (re.test(tx)) { r.esperando_a = cargo; break; }
+    if (r.tipo === 'esperando' && !r.esperando_a && r.programa && entidadDe(r.programa)) r.esperando_a = 'Cliente';
+    if (r.tipo === 'avance') r.paso = adivinarPaso(r.programa, crudo);
+    // Título limpio: sin la fecha, la hora ni la palabra "nota"
+    let t = crudo;
+    const quitar = [f?.m, h?.m].filter(Boolean);
+    quitar.forEach(q => { const re = new RegExp(q.split('').map(c => c.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')).join('').replace(/[aeioun]/g, c => ({ a: '[aá]', e: '[eé]', i: '[ií]', o: '[oó]', u: '[uúü]', n: '[nñ]' }[c])).replace(/ /g, '\\s+'), 'i'); t = t.replace(re, ' '); });
+    t = t.replace(/^\s*nota\s*[:,-]?\s*/i, '').replace(/^\s*(esperando|espero)( (a|que|de))?\s+/i, '').replace(/^\s*(listo|hecho)\s*[:,-]?\s*/i, '').replace(/\s{2,}/g, ' ').replace(/\s+([.,;:])/g, '$1').replace(/^[\s,.;:-]+|[\s,;:-]+$/g, '').trim();
+    r.titulo = t ? t.charAt(0).toUpperCase() + t.slice(1) : crudo.trim();
+    return r;
+  }
+  const CAP_TIPOS = [['tarea', 'Tarea'], ['esperando', 'Esperando a'], ['avance', 'Avance'], ['nota', 'Nota']];
+
+  function opcionesPaso(p, sel) {
+    if (!p) return '<option value="">Elige primero el programa</option>';
+    const fs = fasesDe(p), fa = faseActual(p), ia = fs.indexOf(fa);
+    const its = itemsOrdenados(p).filter(abierto).sort((a, b) => (Math.abs(fs.indexOf(a.fase) - ia) - Math.abs(fs.indexOf(b.fase) - ia)));
+    return `<option value="">Ninguno: solo dejar la nota</option>` + its.slice(0, 40).map(i => `<option value="${i.id}" ${i.id === sel ? 'selected' : ''}>${i.hito ? '◆ ' : ''}${esc(i.titulo.length > 70 ? i.titulo.slice(0, 68) + '…' : i.titulo)}</option>`).join('');
+  }
+  function formCaptura(pre = {}) {
     const activos = S.data.programas.filter(p => p.estado === 'activo').sort((a, b) => nombreProg(a).localeCompare(nombreProg(b)));
-    const actual = S.view.name === 'programa' ? S.view.id : '';
+    const actual = pre.programa_id || (S.view.name === 'programa' ? S.view.id : '');
     const dia = S.view.name === 'hoy' && S.dia ? S.dia : today();
+    const tipo = pre.tipo || 'tarea';
     modal(`<form data-form="captura">
-      ${sheetHead('Captura rápida')}
-      ${fld('Qué es', seg('tipo', [['tarea', 'Tarea'], ['esperando', 'Esperando a'], ['nota', 'Nota']], 'tarea'))}
-      ${fld('Texto', `<textarea class="input" name="texto" rows="2" required autofocus placeholder="Ej.: Llamar a Diana por la orden de compra"></textarea>`)}
-      ${fld('Programa', `<select class="input" name="programa_id">${opts(activos.map(p => [p.id, nombreProg(p)]), actual, 'Ninguno, tarea personal')}</select>`)}
+      ${sheetHead('Registro rápido')}
+      <p class="small muted" style="margin-top:-6px">Escríbelo como lo dirías. Rumbo reconoce el programa, la fecha, la hora y de quién esperas algo. También puedes dictar con el micrófono del teclado.</p>
+      ${fld('Qué pasó o qué hay que hacer', `<textarea class="input" name="texto" rows="3" required autofocus data-input="captura" placeholder="Ej.: Ya llegó el acta del consejo de Solventum. O: Llamar al cliente de Baxter el jueves 3 pm"></textarea>`)}
+      <div class="entendi" id="entendi" hidden></div>
+      ${IA.on ? `<button type="button" class="btn sm ia-btn" data-act="ia-captura">${ICON.spark}<span>Ordenar con IA</span></button>` : ''}
+      ${fld('Tipo', seg('tipo', CAP_TIPOS, tipo))}
+      ${fld('Programa', `<select class="input" name="programa_id" data-change="cap-prog">${opts(activos.map(p => [p.id, nombreProg(p)]), actual, 'Ninguno, tarea personal')}</select>`)}
       <div class="two">${fld('Para el', inp('plan_fecha', dia, 'type="date"'), 'tarea')}${fld('Hora <span class="muted">(opcional)</span>', inp('hora', '', 'type="time"'), 'tarea')}</div>
       <div class="two">${fld('Esperando a', `<select class="input" name="esperando_a">${opts(ACTORES.filter(a => a !== 'Yo'), 'Cliente')}</select>`, 'esperando')}
         ${fld('Hacer seguimiento el', inp('fecha_seguimiento', addDays(today(), 3), 'type="date"'), 'esperando')}</div>
+      ${fld('Paso que se cumplió', `<select class="input" name="hecho_id">${opcionesPaso(byId('programas', actual))}</select>`, 'avance')}
       <label class="small row" data-show="tarea esperando" style="margin-bottom:12px"><input type="checkbox" name="avisar" checked> Avisarme (a la hora elegida o a las 8:00 a. m.)</label>
-      <p class="tiny muted" data-show="nota">La nota queda en la bitácora del programa elegido.</p>
+      <p class="tiny muted" data-show="nota avance">Queda en la bitácora del programa.</p>
       <div class="sheet-actions"><button type="button" class="btn" data-act="close">Cancelar</button><button class="btn primary">Guardar</button></div>
     </form>`);
-    applyShow($('#modal-root form'), 'tarea');
+    const f = $('#modal-root form'); f._tocado = new Set(); applyShow(f, tipo);
+    if (pre.texto) { f.texto.value = pre.texto; aplicarEntendido(f); }
+  }
+  // Llena los campos con lo que entendió del texto, sin pisar lo que cambiaste a mano
+  function aplicarEntendido(f) {
+    const r = entender(f.texto.value), T = f._tocado || new Set();
+    const set = (n, v) => { if (!T.has(n) && f[n] && v !== null && v !== undefined) f[n].value = v; };
+    if (!T.has('tipo')) {
+      f.tipo.value = r.tipo;
+      f.querySelectorAll('[data-name="tipo"]').forEach(b => b.classList.toggle('on', b.dataset.v === r.tipo));
+      applyShow(f, r.tipo);
+    }
+    if (r.programa && !T.has('programa_id') && f.programa_id.value !== r.programa.id) { f.programa_id.value = r.programa.id; f.hecho_id.innerHTML = opcionesPaso(r.programa); }
+    if (r.tipo === 'esperando') { set('fecha_seguimiento', r.fecha); set('esperando_a', r.esperando_a); }
+    else { set('plan_fecha', r.fecha); set('hora', r.hora); }
+    if (r.paso && !T.has('hecho_id') && byId('programas', f.programa_id.value)?.id === r.paso.programa_id) f.hecho_id.value = r.paso.id;
+    const chips = [];
+    const p = byId('programas', f.programa_id.value);
+    if (r.programa) chips.push(`${ICON.folder}<span>${esc(nombreProg(r.programa))}</span>`);
+    if (r.fecha) chips.push(`${ICON.cal}<span class="cap">${esc(relDate(r.fecha))}</span>`);
+    if (r.hora) chips.push(`${ICON.clock}<span>${esc(fmtHora(r.hora))}</span>`);
+    if (r.tipo === 'esperando' && r.esperando_a) chips.push(`${ICON.wait}<span>${esc(r.esperando_a)}</span>`);
+    if (r.tipo === 'avance' && r.paso && p && r.paso.programa_id === p.id) chips.push(`${ICON.check}<span class="ellipsis">${esc(r.paso.hito || r.paso.titulo)}</span>`);
+    const e = $('#entendi');
+    if (e) { e.hidden = !f.texto.value.trim(); e.innerHTML = `<span class="tiny muted">Entendí:</span> <b>${esc(CAP_TIPOS.find(x => x[0] === (T.has('tipo') ? f.tipo.value : r.tipo))?.[1] || '')}</b>${chips.map(c => `<em>${c}</em>`).join('')}`; }
+  }
+
+  // Registrar avance de un programa en una sola hoja: lo que pasó, lo que se cumplió y lo que sigue
+  function formAvance(p) {
+    const fs = fasesDe(p), fa = faseActual(p), ia = fs.indexOf(fa);
+    const abiertos = itemsOrdenados(p).filter(i => abierto(i));
+    const cerca = abiertos.filter(i => { const k = fs.indexOf(i.fase); return k >= ia && k <= ia + 1; });
+    const lista = (cerca.length ? cerca : abiertos).slice(0, 10);
+    const hoy = today();
+    modal(`<form data-form="avance" data-id="${p.id}">
+      ${sheetHead('Registrar avance')}
+      <p class="small muted" style="margin-top:-6px">${esc(p.nombre)} · fase ${esc(fa)}</p>
+      ${fld('Qué pasó <span class="muted">(opcional)</span>', `<textarea class="input" name="resumen" rows="2" autofocus placeholder="Ej.: El director confirmó 12 docentes; el cliente pidió factura en noviembre"></textarea>`)}
+      <h4 class="fsec">Marca lo que ya se cumplió</h4>
+      <div class="choice avance-list">${lista.map(i => `<label><input type="checkbox" name="hechos" value="${i.id}"><div><b>${i.hito ? `<span class="hito-ic ${estadoHito(i, i === proxHito(p))}">${DIAMANTE}</span>` : ''}${esc(i.titulo)}</b>
+        <div class="tiny muted">${esc(i.fase)}${i.responsable && i.responsable !== 'Yo' ? ' · ' + esc(i.responsable) : ''}${i.fecha_limite ? ' · ' + esc(relDate(i.fecha_limite)) : ''}</div></div></label>`).join('') || '<p class="small muted">No hay pasos abiertos.</p>'}</div>
+      <h4 class="fsec">Lo que sigue</h4>
+      ${fld('Próxima acción <span class="muted">(opcional)</span>', inp('proxima', '', 'placeholder="Ej.: Enviar el cuadro de honorarios a Presupuestos"'))}
+      <div class="two">${fld('Para el', inp('fecha', addDays(hoy, 1), 'type="date"'))}${fld('Cómo va', `<select class="input" name="salud">${opts([['', 'Sin cambio'], ...Object.entries(SALUD).map(([k, v]) => [k, v[0]])], '')}</select>`)}</div>
+      <div class="sheet-actions"><button type="button" class="btn" data-act="close">Cancelar</button><button class="btn primary">Guardar avance</button></div>
+    </form>`);
+  }
+
+  // ── Programa nuevo a partir de un correo o texto pegado ──
+  function extraerPrograma(texto) {
+    const raw = String(texto || ''), tx = norm(raw), out = {};
+    const tipoRe = /\b(curso|diplomado|seminario|taller|congreso|simposio|jornada|microcredencial|certificaci[oó]n|rotaci[oó]n|bootcamp|webinar|ciclo)\b[^\n.;:]{3,90}/i;
+    const m = raw.match(tipoRe);
+    if (m) out.nombre = m[0].replace(/\s+/g, ' ').replace(/[,\s]+(para|dirigido|que|con una|de \d).*$/i, '').trim().replace(/^./, c => c.toUpperCase());
+    const ent = S.data.entidades.find(e => palabras(e.nombre).some(k => palabras(raw).includes(k)));
+    if (ent) out.empresa = ent.nombre;
+    if (/\baval\b/.test(tx)) out.ruta = 'aval'; else if (/oferta abierta|inscripciones abiertas|micrositio/.test(tx)) out.ruta = 'abierta';
+    if (/diplomado/.test(tx)) out.tipo_programa = '3'; else if (/taller/.test(tx)) out.tipo_programa = '2';
+    else if (/seminario|congreso|simposio/.test(tx)) out.tipo_programa = '4'; else if (/curso|certificacion|microcredencial/.test(tx)) out.tipo_programa = '1';
+    if (/hibrid/.test(tx)) out.modalidad = 'Híbrida'; else if (/presencial/.test(tx)) out.modalidad = 'Presencial';
+    else if (/asincronic/.test(tx)) out.modalidad = 'Virtual asincrónica'; else if (/virtual|sincronic|zoom|teams|en linea|online/.test(tx)) out.modalidad = 'Virtual sincrónica';
+    if (/nueva cohorte|segunda cohorte|nueva edicion|nueva version|otra cohorte/.test(tx)) out.es_nuevo = '0';
+    let x;
+    if ((x = tx.match(/(\d{1,4})\s*(horas|h\b)/))) out.horas = Number(x[1]);
+    if ((x = tx.match(/(\d{1,4})\s*(participantes|personas|asistentes|inscritos|cupos|profesionales|enfermer[oa]s|medicos)/))) out.participantes = Number(x[1]);
+    if ((x = raw.match(/\$\s?([\d.,]{5,})/))) out.valor = Number(x[1].replace(/[.,](?=\d{3}\b)/g, '').replace(',', '.'));
+    else if ((x = tx.match(/(\d+(?:[.,]\d+)?)\s*(millones|mill)/))) out.valor = Math.round(Number(x[1].replace(',', '.')) * 1e6);
+    // Fechas: las dos primeras que aparezcan
+    const fechas = [];
+    let resto = tx;
+    for (let k = 0; k < 4 && fechas.length < 2; k++) { const f = leerFecha(resto); if (!f) break; if (!/^(hoy|manana)/.test(f.m.trim())) fechas.push(f.f); resto = resto.replace(f.m, ' '); }
+    fechas.sort(); if (fechas[0]) out.fecha_inicio = fechas[0]; if (fechas[1]) out.fecha_fin = fechas[1];
+    for (const f of FACULTADES) if (tx.includes(norm(f)) && f !== 'Otra') { out.facultad = f; break; }
+    return out;
+  }
+  function llenarPrograma(f, d) {
+    const setSeg = (name, v) => { if (!v || !f[name]) return; f[name].value = v; f.querySelectorAll(`[data-name="${name}"]`).forEach(b => b.classList.toggle('on', b.dataset.v === v)); };
+    if (d.nombre && !f.nombre.value.trim()) f.nombre.value = d.nombre;
+    if (d.empresa && f.empresa && !f.empresa.value.trim()) f.empresa.value = d.empresa;
+    if (d.ruta) { const b = f.querySelector(`[data-act="seg-ruta"][data-clave="${d.ruta}"]`); if (b) b.click(); }
+    setSeg('tipo_programa', d.tipo_programa); setSeg('es_nuevo', d.es_nuevo);
+    if (d.modalidad && MODALIDADES.includes(d.modalidad)) f.modalidad.value = d.modalidad;
+    if (d.fecha_inicio && /^\d{4}-\d{2}-\d{2}$/.test(d.fecha_inicio)) f.fecha_inicio.value = d.fecha_inicio;
+    if (d.fecha_fin && /^\d{4}-\d{2}-\d{2}$/.test(d.fecha_fin)) f.fecha_fin.value = d.fecha_fin;
+    const extra = { horas: d.horas, participantes: d.participantes, valor: d.valor ?? d.valor_total ?? d.valor_persona, facultad: d.facultad, director: d.director };
+    Object.entries(extra).forEach(([k, v]) => { if (v !== null && v !== undefined && v !== '' && f['x_' + k]) f['x_' + k].value = v; });
+    const res = [extra.horas && `${extra.horas} h`, extra.participantes && `${extra.participantes} participantes`, extra.valor && money(extra.valor), extra.facultad, extra.director].filter(Boolean);
+    const e = f.querySelector('.extra-cap');
+    if (e) { e.hidden = !res.length; e.innerHTML = res.length ? `También tomé para el Cuadro Maestro: <b>${res.map(esc).join(' · ')}</b>` : ''; }
+  }
+
+  // ───────────── Asistente IA (opcional y con tope de costo) ─────────────
+  const IA = { on: false, info: null };
+  async function iaEstado() {
+    if (S.mode !== 'remote' || !S.user) return;
+    try { const { data, error } = await sb.rpc('estado_ia'); if (!error && data) { IA.info = data; IA.on = !!data.configurada; } } catch (e) { /* sin conexión */ }
+  }
+  function iaContexto(pid) {
+    const ps = S.data.programas.filter(p => p.estado === 'activo' && (!pid || p.id === pid));
+    return {
+      hoy: today(), dia_semana: new Date().toLocaleDateString('es-CO', { weekday: 'long' }), cargos: ACTORES,
+      programas: ps.map(p => {
+        const fs = fasesDe(p), ia = fs.indexOf(faseActual(p));
+        const pasos = itemsOrdenados(p).filter(i => abierto(i) && (pid || fs.indexOf(i.fase) <= ia + 1)).slice(0, pid ? 40 : 14);
+        return { id: p.id, nombre: nombreProg(p), nombre_completo: p.nombre, empresa: empresaTxt(p), fase: faseActual(p), pasos_abiertos: pasos.map(i => ({ id: i.id, titulo: i.titulo, hito: i.hito || undefined })) };
+      }),
+    };
+  }
+  async function iaLlamar(texto, pid) {
+    const { data: { session } } = await sb.auth.getSession();
+    const r = await fetch(`${CFG.supabaseUrl}/functions/v1/asistente`, {
+      method: 'POST', headers: { Authorization: 'Bearer ' + session.access_token, apikey: CFG.supabaseKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ texto, contexto: iaContexto(pid) }),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.ok) {
+      const msg = { sin_llave: 'Falta la llave del asistente (Más > Asistente IA).', limite: 'Llegaste al tope de usos de este mes. Puedes subirlo en Más > Asistente IA.',
+        llave_invalida: 'La llave del asistente no es válida.', sin_saldo: 'La cuenta de la API no tiene saldo.' }[j.error] || 'El asistente no respondió. Intenta de nuevo.';
+      throw new Error(msg);
+    }
+    if (IA.info) { IA.info.usos_mes = j.usos; }
+    return j.propuesta;
+  }
+  const TIPO_IA = { tarea: ['Tarea', ''], esperando: ['Esperando', 'amber'], nota: ['Nota', 'blue'], hecho: ['Hecho', 'green'] };
+  function formIA(prop, texto) {
+    S.iaProp = prop;
+    const acc = prop.acciones || [], pn = prop.programa_nuevo;
+    const prog = id => byId('programas', id);
+    const fila = (a, k) => {
+      const p = prog(a.programa_id || prop.programa_id), paso = a.item_id ? byId('items', a.item_id) : null;
+      const meta = [p ? nombreProg(p) : (pn ? 'Programa nuevo' : 'Sin programa'), a.fecha && relDate(a.fecha), a.hora && fmtHora(a.hora), a.esperando_a].filter(Boolean);
+      return `<label class="ia-row"><input type="checkbox" name="a${k}" checked><div class="grow"><div class="row" style="gap:6px"><span class="pill ${TIPO_IA[a.tipo]?.[1] || ''}">${TIPO_IA[a.tipo]?.[0] || a.tipo}</span>
+        <b class="grow">${esc(a.tipo === 'hecho' && paso ? paso.titulo : a.titulo)}</b></div><div class="tiny muted">${meta.map(esc).join(' · ')}</div></div></label>`;
+    };
+    modal(`<form data-form="ia-aplicar">
+      ${sheetHead('Lo que entendí')}
+      <p class="small" style="margin-top:-6px">${esc(prop.resumen || '')}</p>
+      ${pn ? `<label class="ia-row nuevo"><input type="checkbox" name="pn" checked><div class="grow"><div class="row" style="gap:6px"><span class="pill accent">Programa nuevo</span><b class="grow">${esc(pn.nombre)}</b></div>
+        <div class="tiny muted">${[pn.empresa, { cerrado: 'Cerrado B2B', aval: 'Aval académico', abierta: 'Oferta abierta' }[pn.ruta], pn.modalidad, pn.fecha_inicio && 'Inicio ' + fmtDate(pn.fecha_inicio), pn.horas && pn.horas + ' h', pn.participantes && pn.participantes + ' participantes'].filter(Boolean).map(esc).join(' · ')}</div></div></label>` : ''}
+      <div class="ia-list">${acc.map(fila).join('') || (pn ? '' : '<p class="small muted">No encontré nada para registrar.</p>')}</div>
+      <input type="hidden" name="texto" value="${esc(texto)}">
+      <p class="tiny muted">Revisa y desmarca lo que no quieras. Nada se guarda hasta que confirmes.</p>
+      <div class="sheet-actions"><button type="button" class="btn" data-act="close">Cancelar</button><button class="btn primary">Guardar lo marcado</button></div>
+    </form>`);
+  }
+  function cardIA() {
+    if (S.mode !== 'remote') return '';
+    const i = IA.info;
+    const costo = i ? (i.tokens_in * 0.10 + i.tokens_out * 0.50) / 1e6 : 0;
+    const cuerpo = IA.on
+      ? `<p class="small muted">Activo con Claude Haiku 5.5. Este mes: <b>${i.usos_mes} de ${i.limite} usos</b> · costo aproximado <b>US$ ${costo.toFixed(costo < 0.1 ? 3 : 2)}</b>. Al llegar al tope deja de responder hasta el mes siguiente.</p>
+        <form class="row" data-form="ia-config" style="gap:8px"><input class="input" type="number" name="limite" min="10" step="10" value="${i.limite}" style="width:110px" aria-label="Tope de usos por mes"><button class="btn sm">Cambiar tope</button><button type="button" class="btn sm danger" data-act="ia-quitar">Quitar llave</button></form>`
+      : `<p class="small muted">Opcional. Convierte correos pegados o notas largas en tareas, seguimientos, avances y programas nuevos. Usa Claude Haiku 5.5, el modelo más económico: cada uso cuesta menos de US$ 0,001, y tú pones un tope de usos al mes. El registro rápido normal funciona sin esto y no cuesta nada.</p>
+        <form data-form="ia-config"><div class="field"><label>Llave de la API de Anthropic</label><input class="input" type="password" name="llave" autocomplete="off" required placeholder="sk-ant-…"></div>
+        <div class="row" style="gap:8px"><div class="field" style="margin:0"><label>Tope de usos al mes</label><input class="input" type="number" name="limite" min="10" step="10" value="300" style="width:120px"></div>
+        <button class="btn primary sm" style="align-self:flex-end">Guardar</button></div>
+        <p class="tiny muted" style="margin:8px 0 0">La llave se guarda en el servidor y la app no puede volver a leerla.</p></form>`;
+    return `<div class="card pad section"><div class="row"><span class="kpi-ic ${IA.on ? 'green' : 'violet'}">${ICON.spark}</span><h2 class="grow">Asistente IA</h2></div>${cuerpo}</div>`;
   }
 
   function formDoc(pid) {
@@ -1639,7 +1997,8 @@
   function menuMas() {
     modal(`${sheetHead('Más opciones')}
       <div class="stack">
-        <button class="btn" style="width:100%" data-act="export-csv">Exportar programas (CSV para el Cuadro Maestro)</button>
+        <button class="btn" style="width:100%" data-act="export-xlsx">Exportar Cuadro Maestro (Excel)</button>
+        <button class="btn" style="width:100%" data-act="export-csv">Exportar hoja BD (CSV)</button>
         <button class="btn" style="width:100%" data-act="export-json">Descargar respaldo completo (JSON)</button>
         <label class="btn" style="width:100%;display:block;text-align:center">Importar respaldo (JSON)<input type="file" accept="application/json,.json" data-change="import" hidden></label>
         ${S.mode === 'remote' ? `<p class="small muted">Sesión: ${esc(S.user?.email || '')}</p><button class="btn danger" style="width:100%" data-act="logout">Cerrar sesión</button>`
@@ -1662,6 +2021,56 @@
     const cell = v => { const x = String(v ?? ''); return /[;"\n\r]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x; };
     download(`cuadro-maestro-${today()}.csv`, '\ufeff' + [cols, ...rows].map(r => r.map(cell).join(';')).join('\r\n'), 'text/csv;charset=utf-8');
     toast('CSV con las columnas del Cuadro Maestro');
+  }
+  // Excel del Cuadro Maestro: hoja BD (mismas columnas, para pegar), seguimiento por programa, hitos y pendientes
+  async function cargarXLSX() {
+    if (window.XLSX) return window.XLSX;
+    await new Promise((ok, ko) => {
+      const sc = document.createElement('script');
+      sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      sc.onload = ok; sc.onerror = () => ko(new Error('No se pudo cargar el generador de Excel. Revisa la conexión.'));
+      document.head.appendChild(sc);
+    });
+    return window.XLSX;
+  }
+  async function exportXLSX() {
+    toast('Preparando el Excel…');
+    const X = await cargarXLSX();
+    const ps = [...S.data.programas].sort((a, b) => (a.fecha_inicio || '9999').localeCompare(b.fecha_inicio || '9999'));
+    const num = v => (v === null || v === undefined || v === '') ? '' : Number(v);
+    const mes = d => d ? MESES_CM[parse(d).getMonth()] : '', dia = d => d ? parse(d).getDate() : '';
+    const fx = d => d ? parse(d) : '';
+    const bd = [['Gestor', 'Línea de negocio', 'Tipo', 'Mes inicio', 'Día inicio', 'Mes fin', 'Día fin', 'Orden interna', 'Nombre del programa', 'Empresa', 'Estado',
+      'Matriculados', 'Intensidad horaria', 'Valor programa', 'Ingresos', 'Facturado', 'Facultad UEB', 'Programa', 'Nombre del director', 'Modalidad',
+      'Plataforma', 'Tipo programa', 'Segmento', 'Trimestre'],
+      ...ps.map(p => [GESTOR, LINEA, esAbierta(p) ? 'ABIERTO' : 'CERRADO', mes(p.fecha_inicio), dia(p.fecha_inicio), mes(p.fecha_fin), dia(p.fecha_fin),
+        p.orden_interna || '', p.nombre, esAbierta(p) ? 'OFERTA ABIERTA' : (entidadDe(p)?.nombre || ''), p.estado_cm || 'Proyección',
+        num(p.participantes), num(p.horas), num(esAbierta(p) ? p.valor_persona : p.valor_total), ingresosCM(p) || '', facturadoCM(p) || '', p.facultad || '', p.programa_academico || '',
+        p.director || '', p.modalidad || '', p.plataforma || '', num(p.tipo_programa), p.segmento || '', trimestreCM(p)])];
+    const seg = [['Programa', 'Empresa', 'Ruta', 'Estado CM', 'Fase actual', 'Avance %', 'Hitos cumplidos', 'Próximo hito', 'Fecha próximo hito', 'Semáforo', 'Estado declarado', 'Nota de estado', 'Inicio', 'Fin', 'Ingresos', 'Datos CM por completar'],
+      ...ps.map(p => { const r = resumenHitos(p); return [p.nombre, empresaTxt(p), rutaDe(p)?.nombre || '', p.estado_cm || 'Proyección', faseActual(p), avance(p).pct, r.n ? `${r.d}/${r.n}` : '',
+        r.sig?.hito || '', fx(r.sig?.fecha_limite), SEM_TXT[semaforo(p)] || ESTADOS_PROG[p.estado] || '', SALUD[p.salud]?.[0] || '', p.salud_nota || '', fx(p.fecha_inicio), fx(p.fecha_fin), ingresosCM(p) || '', faltantesCM(p).join(', ')]; })];
+    const hit = [['Programa', 'Hito', 'Responsable', 'Fecha meta', 'Estado', 'Cumplido el'],
+      ...ps.flatMap(p => hitosDe(p).map(i => [p.nombre, i.hito, i.responsable || 'Yo', fx(i.fecha_limite), { ok: 'Cumplido', late: 'Atrasado', fut: 'Pendiente' }[estadoHito(i)], fx(i.fecha_hecho)]))];
+    const pen = [['Programa', 'Fase', 'Paso', 'Responsable', 'Estado', 'Fecha límite', 'Planeado para', 'Seguimiento', 'Hito'],
+      ...ps.filter(p => p.estado === 'activo').flatMap(p => itemsOrdenados(p).filter(abierto).map(i => [p.nombre, i.fase || '', i.titulo, i.estado === 'esperando' ? (i.esperando_a || '') : (i.responsable || 'Yo'),
+        ESTADOS_ITEM[i.estado], fx(i.fecha_limite), fx(i.plan_fecha), fx(i.fecha_seguimiento), i.hito || ''])),
+      ...S.data.items.filter(i => !i.programa_id && abierto(i)).map(i => ['(Tarea personal)', '', i.titulo, i.responsable || 'Yo', ESTADOS_ITEM[i.estado], fx(i.fecha_limite), fx(i.plan_fecha), fx(i.fecha_seguimiento), ''])];
+    const wb = X.utils.book_new();
+    const hoja = (rows, nombre, anchos) => {
+      const ws = X.utils.aoa_to_sheet(rows, { cellDates: true, dateNF: 'dd/mm/yyyy' });
+      ws['!cols'] = anchos.map(w => ({ wch: w }));
+      if (rows.length > 1) ws['!autofilter'] = { ref: X.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: rows.length - 1, c: rows[0].length - 1 } }) };
+      Object.keys(ws).forEach(k => { const c = ws[k]; if (c && c.t === 'n' && k[0] !== '!' && rows[0][X.utils.decode_cell(k).c] && /valor|ingresos|facturado/i.test(rows[0][X.utils.decode_cell(k).c])) c.z = '"$"#,##0'; });
+      X.utils.book_append_sheet(wb, ws, nombre);
+    };
+    hoja(bd, 'BD', [22, 14, 10, 11, 9, 11, 8, 14, 46, 28, 12, 12, 10, 15, 15, 15, 18, 24, 26, 18, 18, 10, 14, 9]);
+    hoja(seg, 'Seguimiento', [46, 26, 16, 12, 16, 9, 10, 26, 12, 10, 14, 40, 11, 11, 15, 40]);
+    hoja(hit, 'Hitos', [46, 28, 24, 12, 11, 12]);
+    hoja(pen, 'Pendientes', [40, 16, 60, 24, 11, 12, 12, 12, 22]);
+    const buf = X.write(wb, { type: 'array', bookType: 'xlsx' });
+    download(`cuadro-maestro-${today()}.xlsx`, buf, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    toast('Excel listo: BD, Seguimiento, Hitos y Pendientes');
   }
   async function importJSON(file) {
     const data = JSON.parse(await file.text());
@@ -1771,6 +2180,29 @@
     open: el => go('programa', el.dataset.id),
     tab(el) { S.view.tab = el.dataset.tab; history.replaceState(null, '', `#/programa/${S.view.id}/${S.view.tab}`); render(); },
     menu: menuMas,
+    avance: el => formAvance(byId('programas', el.dataset.id)),
+    'prog-texto'(el) {
+      const f = el.closest('form'), d = extraerPrograma(f._texto.value);
+      if (!Object.keys(d).length) { toast('No encontré datos en el texto'); return; }
+      llenarPrograma(f, d); toast('Revisa los campos y crea el programa');
+    },
+    async 'prog-ia'(el) {
+      const f = el.closest('form'), t = f._texto.value.trim(); if (!t) { toast('Pega primero el texto'); return; }
+      el.disabled = true; el.querySelector('span').textContent = 'Leyendo…';
+      try { const prop = await iaLlamar(t); llenarPrograma(f, { ...extraerPrograma(t), ...(prop?.programa_nuevo || {}), valor: prop?.programa_nuevo?.valor_total || prop?.programa_nuevo?.valor_persona }); toast('Revisa los campos y crea el programa'); }
+      catch (e) { toast(e.message); }
+      el.disabled = false; el.querySelector('span').textContent = 'Llenar con IA';
+    },
+    async 'ia-captura'(el) {
+      const f = el.closest('form'), t = f.texto.value.trim(); if (!t) { toast('Escribe o pega primero el texto'); return; }
+      el.disabled = true; el.querySelector('span').textContent = 'Ordenando…';
+      try { const prop = await iaLlamar(t, f.programa_id.value || null); if (!prop) throw new Error('El asistente no devolvió nada'); formIA(prop, t); }
+      catch (e) { toast(e.message); el.disabled = false; el.querySelector('span').textContent = 'Ordenar con IA'; }
+    },
+    async 'ia-quitar'() {
+      if (!confirm('¿Quitar la llave del asistente? El registro rápido sigue funcionando sin IA.')) return;
+      const { error } = await sb.rpc('quitar_llave_ia'); if (error) throw error; await iaEstado(); render(); toast('Asistente desactivado');
+    },
     captura: formCaptura,
     nuevo: () => formPrograma(),
     close: closeModal,
@@ -1786,6 +2218,7 @@
       const form = el.closest('form');
       form.querySelector(`input[name="${el.dataset.name}"]`).value = el.dataset.v;
       el.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === el));
+      if (form._tocado) form._tocado.add(el.dataset.name);
       if (['estado', 'tipo'].includes(el.dataset.name)) applyShow(form, el.dataset.v);
     },
     'seg-ruta'(el) {
@@ -1829,13 +2262,14 @@
       render(); toast(n ? `${n} fechas actualizadas` : 'No había fechas por recalcular');
     },
     'export-csv': exportCSV,
+    'export-xlsx': exportXLSX,
     'export-json': () => download(`rumbo-respaldo-${today()}.json`, JSON.stringify(S.data, null, 1), 'application/json'),
     async logout() { await sb.auth.signOut(); S.user = null; S.data = Object.fromEntries(TABLES.map(t => [t, []])); closeModal(); render(); },
   };
 
   async function entrar(user) {
     S.user = user; S.ready = false; render();
-    await loadRemote(); await seedIfEmpty(); S.ready = true; render();
+    await loadRemote(); await seedIfEmpty(); await backfillHitos(); S.ready = true; render(); iaEstado().then(render);
   }
   ACT.signup = async el => {
     const f = el.closest('form'), msg = $('#login-msg');
@@ -1888,6 +2322,19 @@
     return n;
   }
 
+  // Crea el programa con su checklist. Recibe los campos del formulario corto (y los extra que se tomaron de un texto).
+  async function crearPrograma(d) {
+    const row = clean({ nombre: d.nombre, tipo_programa: d.tipo_programa, fecha_inicio: d.fecha_inicio, fecha_fin: d.fecha_fin, modalidad: d.modalidad,
+      horas: d.x_horas, participantes: d.x_participantes, facultad: d.x_facultad, director: d.x_director });
+    if (d.x_valor) row[d.abierta ? 'valor_persona' : 'valor_total'] = Number(d.x_valor);
+    Object.assign(row, { ruta_id: d.ruta_id, entidad_id: d.entidad_id || null, modulos: d.modulos || [], es_nuevo: d.es_nuevo !== '0', estado: 'activo', estado_cm: 'Proyección', prioridad: 'media', actualizado: nowIso() });
+    const p = await db.insert('programas', row);
+    await db.insert('items', generarItems(p, row.modulos, true));
+    await db.insert('bitacora', { programa_id: p.id, fecha: today(), tipo: 'Nota', resumen: 'Programa creado en Rumbo.', proxima_accion: null });
+    if (d._texto && d._texto.trim()) await db.insert('bitacora', { programa_id: p.id, fecha: today(), tipo: 'Correo', resumen: 'Solicitud recibida:\n' + d._texto.trim().slice(0, 4000), proxima_accion: null });
+    return p;
+  }
+
   // ───────────── Formularios ─────────────
   const FORMS = {
     async login(d) {
@@ -1908,11 +2355,7 @@
       if (!id) {
         if (!d.ruta_id) { toast('Elige una ruta'); return; }
         if (!abierta && !entidad_id) { toast('Escribe la empresa'); f.empresa?.focus(); return; }
-        const row = clean({ nombre: d.nombre, tipo_programa: d.tipo_programa, fecha_inicio: d.fecha_inicio, fecha_fin: d.fecha_fin, modalidad: d.modalidad });
-        Object.assign(row, { ruta_id: d.ruta_id, entidad_id, modulos: mods, es_nuevo: d.es_nuevo !== '0', estado: 'activo', estado_cm: 'Proyección', prioridad: 'media', actualizado: nowIso() });
-        const p = await db.insert('programas', row);
-        await db.insert('items', generarItems(p, mods, true));
-        await db.insert('bitacora', { programa_id: p.id, fecha: today(), tipo: 'Nota', resumen: 'Programa creado en Rumbo.', proxima_accion: null });
+        const p = await crearPrograma({ ...d, entidad_id, modulos: mods, abierta });
         closeModal(); go('programa', p.id); toast('Programa creado');
         return;
       }
@@ -1946,6 +2389,7 @@
       const patch = clean({ titulo: d.titulo, estado: d.estado, fase: d.fase, responsable: d.responsable, fecha_limite: d.fecha_limite, enlace: d.enlace, nota: d.nota,
         plan_fecha: d.plan_fecha, hora: d.hora });
       patch.prioridad = d.prioridad === 'on';
+      if (byId('programas', i.programa_id)) patch.hito = d.es_hito === 'on' ? ((d.hito || '').trim() || i.hito || d.titulo.trim()) : (i.hito ? '' : (i.hito ?? null));
       if ('esencial' in d || byId('programas', i.programa_id)) patch.esencial = d.esencial === 'on';
       if (!i.programa_id && d.programa_id) {
         const p = byId('programas', d.programa_id);
@@ -1972,31 +2416,86 @@
     },
     async captura(d) {
       const p = byId('programas', d.programa_id);
-      const texto = d.texto.trim();
-      if (d.tipo === 'nota') {
-        if (!p) { toast('Elige el programa de la nota'); return; }
-        await db.insert('bitacora', { programa_id: p.id, fecha: today(), tipo: 'Nota', resumen: texto, proxima_accion: null });
-        await touch(p.id); closeModal(); render(); toast('Nota en ' + nombreProg(p)); return;
+      const texto = d.texto.trim(), r = entender(texto), titulo = r.titulo || texto;
+      if (d.tipo === 'nota' || d.tipo === 'avance') {
+        if (!p) { toast('Elige el programa'); return; }
+        const paso = d.tipo === 'avance' && d.hecho_id ? byId('items', d.hecho_id) : null;
+        if (paso) await db.update('items', paso.id, { estado: 'hecho', fecha_hecho: today() });
+        await db.insert('bitacora', { programa_id: p.id, fecha: today(), tipo: d.tipo === 'avance' ? 'Decisión' : 'Nota', resumen: paso ? `${paso.hito ? 'Hito cumplido: ' + paso.hito + '. ' : 'Hecho: ' + paso.titulo + '. '}${texto}` : texto, proxima_accion: null });
+        await touch(p.id); closeModal(); render();
+        toast(paso ? (paso.hito ? `Hito cumplido: ${paso.hito}` : 'Paso marcado como hecho') : 'Nota en ' + nombreProg(p)); return;
       }
       const esp = d.tipo === 'esperando';
       let fase = null;
       if (p) { const fa = faseActual(p), fs = fasesDe(p); fase = fs.includes(fa) ? fa : (fs[fs.length - 1] || 'General'); }
       const plan = esp ? null : (d.plan_fecha || null), hora = esp ? null : (d.hora || null);
       const recordar = d.avisar ? (esp ? aRecordar(d.fecha_seguimiento, '08:00') : aRecordar(plan, hora || '08:00')) : null;
-      await db.insert('items', { programa_id: p ? p.id : null, fase, orden: 900, titulo: texto, estado: esp ? 'esperando' : 'pendiente', responsable: 'Yo',
+      await db.insert('items', { programa_id: p ? p.id : null, fase, orden: 900, titulo, estado: esp ? 'esperando' : 'pendiente', responsable: esp ? d.esperando_a : 'Yo',
         esperando_a: esp ? d.esperando_a : null, fecha_seguimiento: esp ? d.fecha_seguimiento : null, fecha_limite: null, plan_fecha: plan, hora,
         recordar_at: recordar && new Date(recordar) > new Date() ? recordar : null, recordado_at: null,
-        fecha_hecho: null, enlace: null, nota: null, esencial: false, dias_ref: null, dias_rel: null });
+        fecha_hecho: null, enlace: null, nota: titulo !== texto ? texto : null, esencial: false, dias_ref: null, dias_rel: null });
       if (p) await touch(p.id);
       closeModal(); render(); toast(p ? 'Guardado en ' + nombreProg(p) : 'Tarea guardada');
     },
+    async avance(d, f) {
+      const p = byId('programas', f.dataset.id), hechos = new FormData(f).getAll('hechos');
+      const nombres = [];
+      for (const id of hechos) { const i = byId('items', id); if (i) { await db.update('items', id, { estado: 'hecho', fecha_hecho: today() }); nombres.push(i.hito ? 'Hito: ' + i.hito : i.titulo); } }
+      const partes = [d.resumen && d.resumen.trim(), nombres.length && 'Cumplido: ' + nombres.join('; ') + '.'].filter(Boolean);
+      if (d.salud) await db.update('programas', p.id, { salud: d.salud, salud_fecha: today() });
+      if (partes.length || d.proxima) await db.insert('bitacora', { programa_id: p.id, fecha: today(), tipo: 'Nota', resumen: partes.join(' ') || 'Avance registrado.', proxima_accion: d.proxima ? d.proxima.trim() : null });
+      if (d.proxima && d.proxima.trim()) {
+        const fa = faseActual(byId('programas', p.id)), fs = fasesDe(p), rec = aRecordar(d.fecha || today(), '08:00');
+        await db.insert('items', { programa_id: p.id, fase: fs.includes(fa) ? fa : fs[0], orden: 900, titulo: d.proxima.trim(), estado: 'pendiente', responsable: 'Yo', esperando_a: null,
+          fecha_seguimiento: null, fecha_limite: null, plan_fecha: d.fecha || today(), hora: null, recordar_at: new Date(rec) > new Date() ? rec : null, recordado_at: null,
+          fecha_hecho: null, enlace: null, nota: null, esencial: false, dias_ref: null, dias_rel: null });
+      }
+      await touch(p.id); closeModal(); render();
+      toast(nombres.length ? `Avance registrado: ${plural(nombres.length, 'paso cumplido', 'pasos cumplidos')}` : 'Avance registrado');
+    },
+    async 'ia-aplicar'(d, f) {
+      const prop = S.iaProp || {}; let n = 0, pNuevo = null;
+      if (prop.programa_nuevo && d.pn === 'on') {
+        const pn = prop.programa_nuevo, ruta = S.data.rutas.find(r => r.clave === pn.ruta) || S.data.rutas.find(r => r.clave === 'cerrado');
+        let entidad_id = null;
+        if (ruta.clave !== 'abierta' && pn.empresa) entidad_id = (entidadPorNombre(pn.empresa) || await db.insert('entidades', clean({ nombre: pn.empresa.trim() }))).id;
+        pNuevo = await crearPrograma({ nombre: pn.nombre, ruta_id: ruta.id, entidad_id, abierta: ruta.clave === 'abierta', tipo_programa: pn.tipo_programa || '1', modalidad: pn.modalidad,
+          fecha_inicio: pn.fecha_inicio, fecha_fin: pn.fecha_fin, x_horas: pn.horas, x_participantes: pn.participantes, x_valor: pn.valor_total || pn.valor_persona, x_facultad: pn.facultad, x_director: pn.director, _texto: d.texto });
+        n++;
+      }
+      for (const [k, a] of (prop.acciones || []).entries()) {
+        if (d['a' + k] !== 'on') continue;
+        const p = byId('programas', a.programa_id || prop.programa_id) || pNuevo;
+        if (a.tipo === 'hecho') { const i = byId('items', a.item_id); if (i) { await db.update('items', i.id, { estado: 'hecho', fecha_hecho: today() }); n++; } continue; }
+        if (a.tipo === 'nota') { if (p) { await db.insert('bitacora', { programa_id: p.id, fecha: today(), tipo: 'Nota', resumen: a.titulo, proxima_accion: null }); n++; } continue; }
+        const esp = a.tipo === 'esperando', fecha = /^\d{4}-\d{2}-\d{2}$/.test(a.fecha || '') ? a.fecha : null, hora = /^\d{2}:\d{2}$/.test(a.hora || '') ? a.hora : null;
+        const seg = esp ? (fecha || addDays(today(), 3)) : null, rec = esp ? aRecordar(seg, '08:00') : fecha ? aRecordar(fecha, hora || '08:00') : null;
+        let fase = null; if (p) { const fa = faseActual(p), fs = fasesDe(p); fase = fs.includes(fa) ? fa : (fs[0] || 'General'); }
+        const quien = esp && ACTORES.includes(a.esperando_a) ? a.esperando_a : esp ? 'Cliente' : 'Yo';
+        await db.insert('items', { programa_id: p ? p.id : null, fase, orden: 900, titulo: a.titulo, estado: esp ? 'esperando' : 'pendiente', responsable: quien,
+          esperando_a: esp ? quien : null, fecha_seguimiento: seg, fecha_limite: null, plan_fecha: esp ? null : fecha, hora: esp ? null : hora,
+          recordar_at: rec && new Date(rec) > new Date() ? rec : null, recordado_at: null, fecha_hecho: null, enlace: null, nota: null, esencial: false, dias_ref: null, dias_rel: null });
+        n++;
+      }
+      [pNuevo, ...new Set((prop.acciones || []).map(a => a.programa_id || prop.programa_id))].forEach(x => { const id = x?.id || x; if (id && byId('programas', id)) touch(id); });
+      closeModal(); if (pNuevo) go('programa', pNuevo.id); else render();
+      toast(n ? `${plural(n, 'registro guardado', 'registros guardados')}` : 'No se guardó nada');
+    },
+    async 'ia-config'(d) {
+      const { error } = await sb.rpc('guardar_llave_ia', { llave: d.llave || null, limite: Number(d.limite) || 300 });
+      if (error) throw error;
+      await iaEstado(); render(); toast(d.llave ? 'Asistente IA activado' : 'Tope actualizado');
+    },
     async 'tarea-rapida'(d, f) {
       if (!d.titulo || !d.titulo.trim()) return;
-      const dia = f.dataset.d, hora = d.hora || null, recordar = hora ? aRecordar(dia, hora) : null;
-      await db.insert('items', { programa_id: null, fase: null, orden: 0, titulo: d.titulo.trim(), estado: 'pendiente', responsable: 'Yo', esperando_a: null,
+      const r = entender(d.titulo), p = r.programa;
+      const dia = r.fecha || f.dataset.d, hora = d.hora || r.hora || null, recordar = hora ? aRecordar(dia, hora) : null;
+      let fase = null; if (p) { const fa = faseActual(p), fs = fasesDe(p); fase = fs.includes(fa) ? fa : (fs[0] || 'General'); }
+      await db.insert('items', { programa_id: p ? p.id : null, fase, orden: p ? 900 : 0, titulo: r.titulo || d.titulo.trim(), estado: 'pendiente', responsable: 'Yo', esperando_a: null,
         fecha_seguimiento: null, fecha_limite: null, plan_fecha: dia, hora, recordar_at: recordar && new Date(recordar) > new Date() ? recordar : null, recordado_at: null,
         fecha_hecho: null, enlace: null, nota: null, esencial: false, dias_ref: null, dias_rel: null });
-      render();
+      if (p) await touch(p.id);
+      render(); if (p || r.fecha) toast([p && 'Vinculada a ' + nombreProg(p), r.fecha && r.fecha !== f.dataset.d && 'para ' + relDate(r.fecha).toLowerCase()].filter(Boolean).join(', '));
       const again = document.querySelector('form[data-form="tarea-rapida"] input[name="titulo"]'); if (again) again.focus();
     },
     async bitacora(d, f) {
@@ -2060,6 +2559,7 @@
 
   const CHANGE = {
     'f-ruta'(el) { S.f.ruta = el.value; render(); },
+    'cap-prog'(el) { const f = el.form; f.hecho_id.innerHTML = opcionesPaso(byId('programas', el.value)); aplicarEntendido(f); },
     'hide-done'(el) { S.hideDone = el.checked; render(); },
     async 'prog-estado'(el) {
       const p = byId('programas', el.dataset.id), cm = el.value, antes = p.estado_cm || 'Proyección';
@@ -2102,10 +2602,13 @@
     safe(FORMS[f.dataset.form])(Object.fromEntries(new FormData(f)), f).finally(() => { if (btn && btn.isConnected) btn.disabled = false; });
   });
   document.addEventListener('change', e => {
+    const fc = e.target.form;
+    if (fc && fc._tocado && e.target.name && e.target.name !== 'texto') fc._tocado.add(e.target.name);
     const el = e.target.closest('[data-change]');
     if (el && CHANGE[el.dataset.change]) safe(CHANGE[el.dataset.change])(el, e);
   });
   document.addEventListener('input', e => {
+    if (e.target.dataset.input === 'captura') { aplicarEntendido(e.target.form); return; }
     if (e.target.dataset.input === 'buscar') { S.f.q = e.target.value; const l = $('#prog-list'); if (l) l.innerHTML = listaProgramas(); }
   });
   document.addEventListener('keydown', e => {
@@ -2187,20 +2690,23 @@
           if (document.visibilityState === 'visible') { sb.auth.startAutoRefresh(); sb.auth.getSession(); }
           else sb.auth.stopAutoRefresh();
         });
-        if (S.user) { await loadRemote(); await seedIfEmpty(); }
+        if (S.user) { await loadRemote(); await seedIfEmpty(); await backfillHitos(); }
       } else {
         S.mode = 'local';
         S.data = Local.load();
-        await seedIfEmpty();
+        await seedIfEmpty(); await backfillHitos();
       }
       S.ready = true;
       iniciarProgramasDelDia().then(() => render()).catch(fail);
       avState().then(() => { if (AV.on) render(); });
+      iaEstado().then(() => { if (IA.on && S.view.name === 'mas') render(); });
     } catch (err) {
       console.error(err);
       S.error = err.message || String(err);
     }
     render();
   }
+  // Solo para pruebas locales
+  if (location.hostname === 'localhost') window.__rumbo = { formIA, entender, extraerPrograma };
   start();
 })();

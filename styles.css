@@ -576,3 +576,61 @@ input[type="date"].input::-webkit-datetime-edit { padding: 0; }
 .obj.done span { text-decoration: line-through; color: var(--ink-3); }
 .star-on { display: inline-flex; color: var(--amber); margin-right: 4px; vertical-align: -2px; }
 .star-on svg { width: 15px; height: 15px; }
+
+/* ───── Hitos ───── */
+.hito-ic { display: inline-flex; width: 12px; height: 12px; margin-right: 6px; vertical-align: -1px; color: var(--ink-3); flex: none; }
+.hito-ic svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.6; }
+.hito-ic.ok, .hito-ic.next { color: var(--accent); }
+.hito-ic.ok svg { fill: currentColor; }
+.hito-ic.next svg { fill: var(--accent-soft); }
+.hito-ic.late { color: var(--red); }
+.hito-ic.late svg { fill: var(--red-soft); }
+.hito-ic.big { width: 18px; height: 18px; margin: 0 4px 0 2px; }
+.hito-t { color: var(--accent); font-weight: 650; }
+.pc-hito { display: flex; align-items: center; gap: 6px; font-size: 13px; padding: 8px 10px 0; min-width: 0; }
+.hito-mini { display: flex; align-items: center; margin-top: 4px; color: var(--ink-2); }
+.hito-mini .hito-ic { width: 10px; height: 10px; }
+.hitos h2 { margin: 0; }
+.htrack { display: flex; overflow-x: auto; margin: 14px -4px 0; padding: 2px 4px 4px; scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+.htrack::-webkit-scrollbar { display: none; }
+.hn { position: relative; flex: 0 0 auto; width: 104px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; background: none; border: 0; padding: 0 4px; cursor: pointer; color: var(--ink); font: inherit; }
+.hn::before { content: ""; position: absolute; top: 12px; left: -50%; width: 100%; height: 2px; background: var(--line); z-index: 0; }
+.hn:first-child::before { display: none; }
+.hn.ok::before, .hn.next::before, .hn.late::before { background: var(--accent); opacity: .45; }
+.hn i { position: relative; z-index: 1; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; background: var(--surface); border: 2px solid var(--line); color: var(--ink-3); }
+.hn i svg { width: 11px; height: 11px; fill: currentColor; stroke: none; }
+.hn.ok i { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.hn.ok i svg { width: 13px; height: 13px; fill: none; stroke: currentColor; }
+.hn.next i { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+.hn.late i { border-color: var(--red); color: var(--red); background: var(--red-soft); }
+.hn b { font-size: 12.5px; line-height: 1.25; font-weight: 650; }
+.hn span { font-size: 11.5px; color: var(--ink-3); }
+.hn.late span { color: var(--red); font-weight: 600; }
+.hn.next span { color: var(--accent); font-weight: 600; }
+.mk.hito { background: var(--accent); border-radius: 1px; transform: rotate(45deg); }
+.gt-mk.h { width: 9px; height: 9px; top: 3.5px; border: 1.5px solid var(--ink-2); background: var(--surface); transform: translateX(-4.5px) rotate(45deg); z-index: 2; }
+.gt-mk.h.ok { background: var(--accent); border-color: var(--accent); }
+.gt-mk.h.late { background: var(--red); border-color: var(--red); }
+.avance-btn { margin-top: 10px; }
+
+/* ───── Registro rápido, avance y asistente ───── */
+.entendi { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: -4px 0 12px; padding: 8px 10px; border-radius: 12px; background: var(--accent-soft); font-size: 13px; color: var(--ink); min-width: 0; }
+.entendi b { color: var(--accent); }
+.entendi em { font-style: normal; display: inline-flex; align-items: center; gap: 4px; max-width: 100%; background: var(--surface); border-radius: 99px; padding: 3px 9px; font-weight: 600; min-width: 0; }
+.entendi em svg { width: 13px; height: 13px; flex: none; color: var(--accent); }
+.entendi em .ellipsis { max-width: 210px; }
+.ia-btn { margin: -4px 0 14px; color: var(--accent); border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
+.ia-btn svg { width: 16px; height: 16px; }
+.ia-list { display: grid; gap: 8px; margin: 10px 0; }
+.ia-row { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 14px; cursor: pointer; min-width: 0; }
+.ia-row b { font-size: 14px; font-weight: 600; min-width: 0; }
+.ia-row.nuevo { border-color: var(--accent); background: var(--accent-soft); margin-top: 10px; }
+.ia-row input { margin-top: 3px; flex: none; }
+.pegar { margin: -4px 0 14px; }
+.pegar summary { display: flex; align-items: center; gap: 6px; color: var(--accent); font-weight: 650; font-size: 14px; }
+.pegar summary svg { width: 16px; height: 16px; }
+.pegar textarea { margin-top: 8px; }
+.extra-cap { margin: 8px 0 0; padding: 8px 10px; border-radius: 10px; background: var(--green-soft); color: var(--ink); }
+.avance-list label b { font-weight: 600; font-size: 14px; }
+.avance-list .hito-ic { width: 11px; height: 11px; }
+.pegar summary::after { margin-left: auto; float: none; }

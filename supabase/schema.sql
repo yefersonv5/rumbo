@@ -203,3 +203,12 @@ alter table programas add column if not exists salud_nota text;
 alter table programas add column if not exists salud_fecha date;
 alter table items add column if not exists prioridad boolean default false;
 create table if not exists semanas (id uuid primary key default gen_random_uuid(), lunes date not null unique, objetivos jsonb default '[]', nota text, revisada_at timestamptz, created_at timestamptz default now());
+
+-- Hitos: nombre del hito en la plantilla y en cada paso ('' = desmarcado a mano)
+alter table plantilla_items add column if not exists hito text;
+alter table items add column if not exists hito text;
+
+-- Asistente IA (función "asistente", Claude Haiku 5.5): uso por mes para el tope de costo.
+-- La llave se guarda con guardar_llave_ia(llave, limite) en app_secrets y la app no puede leerla.
+-- estado_ia() devuelve si está configurada, el tope y el uso del mes; quitar_llave_ia() la desactiva.
+create table if not exists ai_uso (id uuid primary key default gen_random_uuid(), created_at timestamptz default now(), modo text, tokens_in int default 0, tokens_out int default 0);
