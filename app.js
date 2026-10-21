@@ -246,7 +246,18 @@
     if (location.hash !== h) location.hash = h;
     else { routeFromHash(); render(); }
   }
-  window.addEventListener('hashchange', () => { routeFromHash(); closeModal(); render(); window.scrollTo(0, 0); });
+  const ORDEN_VISTA = { hoy: 0, programas: 1, plantillas: 2, programa: 3 };
+  window.addEventListener('hashchange', () => {
+    const antes = S.view.name;
+    routeFromHash(); closeModal(); render(); window.scrollTo(0, 0);
+    // Animación corta al cambiar de pantalla: entra desde la derecha al avanzar y desde la izquierda al volver.
+    const m = $('#app main');
+    if (m && antes !== S.view.name) {
+      const atras = S.navBack || ORDEN_VISTA[S.view.name] < ORDEN_VISTA[antes];
+      m.classList.add(atras ? 'navback' : 'navfwd');
+    }
+    S.navBack = false;
+  });
 
   // ───────────── Render principal ─────────────
   function render() {
@@ -554,12 +565,123 @@
   }
 
   // ───────────── Modales ─────────────
+  // Ventanas que suben desde abajo (como en Caudal): el fondo queda quieto y se cierran arrastrando hacia abajo.
+  let lockY = 0, closeTimer = null;
+  const isOpen = () => !!$('#modal-root .backdrop:not(.closing)');
+  function lockBody() {
+    if (document.body.classList.contains('lock')) return;
+    lockY = window.scrollY; document.body.style.top = -lockY + 'px'; document.body.classList.add('lock');
+  }
+  function unlockBody() {
+    if (!document.body.classList.contains('lock')) return;
+    document.body.classList.remove('lock'); document.body.style.top = ''; window.scrollTo(0, lockY);
+  }
   function modal(html) {
-    $('#modal-root').innerHTML = `<div class="backdrop" data-act="backdrop"><div class="sheet" role="dialog" aria-modal="true">${html}</div></div>`;
+    clearTimeout(closeTimer);
+    const root = $('#modal-root'), reuse = isOpen();
+    root.innerHTML = `<div class="backdrop${reuse ? ' on' : ''}" data-act="backdrop"><div class="sheet" role="dialog" aria-modal="true"><div class="grab" aria-hidden="true"></div>${html}</div></div>`;
+    lockBody();
+    if (!reuse) requestAnimationFrame(() => requestAnimationFrame(() => { const b = $('#modal-root .backdrop'); if (b) b.classList.add('on'); }));
     const f = $('#modal-root [autofocus]');
     if (f && !matchMedia('(pointer:coarse)').matches) f.focus();
   }
-  function closeModal() { $('#modal-root').innerHTML = ''; }
+  function closeModal() {
+    const b = $('#modal-root .backdrop');
+    if (!b) { unlockBody(); return; }
+    if (document.activeElement && b.contains(document.activeElement)) document.activeElement.blur();
+    b.classList.remove('on'); b.classList.add('closing');
+    unlockBody();
+    clearTimeout(closeTimer);
+    closeTimer = setTimeout(() => { if (b.isConnected) b.remove(); }, 260);
+  }
+
+  // Arrastrar la ventana hacia abajo para cerrarla (celular). Si el contenido está desplazado, primero sube y luego baja la ventana.
+  (() => {
+    let y0 = null, x0 = 0, dy = 0, drag = false, track = [];
+    const mobile = () => window.innerWidth < 640;
+    const sheet = () => $('#modal-root .backdrop.on .sheet');
+    document.addEventListener('touchstart', e => {
+      const s = sheet(); y0 = null;
+      if (!s || !mobile() || e.touches.length > 1 || !s.contains(e.target)) return;
+      if (e.target.closest('input,textarea,select,.seg') && !e.target.closest('.grab,.sheet-head')) return;
+      y0 = e.touches[0].clientY; x0 = e.touches[0].clientX; dy = 0; drag = false; track = [[Date.now(), y0]];
+    }, { passive: true });
+    document.addEventListener('touchmove', e => {
+      if (y0 === null) return;
+      const s = sheet(); if (!s) { y0 = null; return; }
+      const y = e.touches[0].clientY, x = e.touches[0].clientX;
+      if (!drag) {
+        if (Math.abs(x - x0) > 14 && Math.abs(x - x0) > Math.abs(y - y0)) { y0 = null; return; }
+        if (s.scrollTop > 0 && !e.target.closest('.grab,.sheet-head')) { y0 = y; return; }
+        if (y - y0 > 6) { drag = true; s.style.transition = 'none'; } else return;
+      }
+      e.preventDefault();
+      dy = Math.max(0, y - y0); s.style.transform = `translateY(${dy}px)`;
+      track.push([Date.now(), y]); if (track.length > 6) track.shift();
+      const b = s.parentElement; b.style.backgroundColor = `rgba(10,15,12,${(0.45 * Math.max(0, 1 - dy / 400)).toFixed(3)})`;
+    }, { passive: false });
+    const end = () => {
+      if (y0 === null) return; y0 = null;
+      if (!drag) return; drag = false;
+      const s = sheet(); if (!s) return;
+      const a = track[0], z = track[track.length - 1], v = z && a && z[0] > a[0] ? (z[1] - a[1]) / (z[0] - a[0]) : 0;
+      s.style.transition = ''; s.parentElement.style.backgroundColor = '';
+      if (dy > 80 || (v > 0.4 && dy > 24)) { s.style.transform = 'translateY(100%)'; closeModal(); }
+      else s.style.transform = '';
+    };
+    document.addEventListener('touchend', end, { passive: true });
+    document.addEventListener('touchcancel', end, { passive: true });
+    // Con una ventana abierta, tocar y arrastrar sobre la sombra no mueve la página de fondo.
+    document.addEventListener('touchmove', e => {
+      const b = $('#modal-root .backdrop.on');
+      if (b && !e.target.closest('.sheet')) e.preventDefault();
+    }, { passive: false });
+  })();
+
+  // Volver deslizando desde el borde izquierdo (en la app instalada en el iPhone, que no trae ese gesto).
+  (() => {
+    const standalone = navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+    if (!standalone) return;
+    let x0 = null, y0 = 0, dx = 0, on = false, t0 = 0;
+    const main = () => $('#app main');
+    const puedeVolver = () => isOpen() || S.view.name === 'programa';
+    document.addEventListener('touchstart', e => {
+      x0 = null;
+      if (window.innerWidth >= 860 || e.touches.length > 1 || !puedeVolver()) return;
+      const t = e.touches[0]; if (t.clientX > 30) return;
+      x0 = t.clientX; y0 = t.clientY; dx = 0; on = false; t0 = Date.now();
+    }, { passive: true });
+    document.addEventListener('touchmove', e => {
+      if (x0 === null) return;
+      const t = e.touches[0]; dx = t.clientX - x0; const dy = t.clientY - y0;
+      if (!on) {
+        if (Math.abs(dy) > 12 && Math.abs(dy) > dx) { x0 = null; return; }
+        if (dx > 10) { on = true; if (!isOpen() && main()) main().style.transition = 'none'; } else return;
+      }
+      e.preventDefault();
+      if (!isOpen() && main()) main().style.transform = `translateX(${Math.max(0, dx)}px)`;
+    }, { passive: false });
+    const end = () => {
+      if (x0 === null) return; x0 = null;
+      if (!on) return; on = false;
+      const m = main(), v = dx / Math.max(1, Date.now() - t0), ok = dx > window.innerWidth * 0.3 || (v > 0.45 && dx > 40);
+      if (isOpen()) { if (ok) closeModal(); return; }
+      if (!m) return;
+      if (ok) {
+        m.style.transition = 'transform .18s ease-out'; m.style.transform = 'translateX(100%)';
+        setTimeout(() => { S.navBack = true; if (history.length > 1) history.back(); else go('programas'); }, 180);
+      } else {
+        m.style.transition = 'transform .2s ease-out'; m.style.transform = '';
+        setTimeout(() => { m.style.transition = ''; }, 220);
+      }
+    };
+    document.addEventListener('touchend', end, { passive: true });
+    document.addEventListener('touchcancel', end, { passive: true });
+  })();
+
+  // Sin zoom accidental: pellizco y doble toque (igual que en Caudal).
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(ev => document.addEventListener(ev, e => e.preventDefault(), { passive: false }));
+  document.addEventListener('touchmove', e => { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });
   const sheetHead = t => `<div class="sheet-head"><h2>${esc(t)}</h2><button type="button" class="icon-btn" data-act="close" aria-label="Cerrar">${ICON.close}</button></div>`;
   const fld = (label, inner, show) => `<div class="field"${show ? ` data-show="${show}"` : ''}><label>${label}</label>${inner}</div>`;
   const inp = (name, val, attrs = '') => `<input class="input" name="${name}" value="${esc(val ?? '')}" ${attrs}>`;
