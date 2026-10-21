@@ -1,0 +1,13 @@
+{
+  "name": "Rumbo · Seguimiento de programas EC",
+  "short_name": "Rumbo",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f4f0",
+  "theme_color": "#1f5f4a",
+  "lang": "es-CO",
+  "icons": [
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
