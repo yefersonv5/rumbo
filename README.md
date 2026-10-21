@@ -22,17 +22,17 @@ Semáforo: rojo = paso esencial vencido, o inicio en 15 días con fases previas 
 | `plantillas.js` | Rutas y módulos iniciales (se cargan a la base solo la primera vez) |
 | `config.js` | URL y llave pública de Supabase |
 | `supabase/schema.sql` | Tablas y seguridad; se ejecuta una vez |
-| `.github/workflows/mantener-activo.yml` | Evita la pausa por inactividad del plan gratuito |
+| `.github/workflows/mantener-activo.yml` | Evita la pausa por inactividad del plan gratuito (lunes y jueves) |
 | `manifest.json`, `sw.js`, `icon.png` | Instalación como app (PWA) |
 
 ## Puesta en marcha
 
-1. **Supabase**: crear el proyecto `rumbo` (región São Paulo), abrir *SQL Editor*, pegar `supabase/schema.sql` y ejecutar.
-2. En *Authentication > Users* crear tu usuario (correo y contraseña). Luego en *Authentication > Sign In / Providers* desactivar **Allow new users to sign up**.
-3. En *Project Settings > API* copiar la **Project URL** y la **anon / publishable key** a `config.js`.
-4. **GitHub**: crear el repositorio `rumbo`, subir todos los archivos (incluida la carpeta `.github`) y activar *Settings > Pages* desde la rama `main`.
-5. En *Settings > Secrets and variables > Actions* crear `SUPABASE_URL` y `SUPABASE_KEY`. En la pestaña *Actions*, ejecutar una vez "Mantener Supabase activo" para probar.
-6. Abrir la página en el iPhone con Safari > Compartir > **Agregar a inicio**.
+Ya hecho: proyecto Supabase `rumbo` (São Paulo) con tablas y RLS, `config.js` conectado, repositorio y GitHub Pages.
+
+Pendiente (solo Yeferson):
+1. En Supabase > *Authentication > Users* > **Add user > Create new user**: tu correo y una contraseña, con *Auto Confirm User* marcado.
+2. En *Authentication > Sign In / Providers* desactivar **Allow new users to sign up**.
+3. Abrir https://yefersonv5.github.io/rumbo/ en el iPhone con Safari > Compartir > **Agregar a inicio**.
 
 Sin `config.js` completo la app funciona en **modo local** (datos solo en ese navegador): sirve para probar.
 Para pasar lo probado a Supabase: *Más > Descargar respaldo* en modo local y *Más > Importar respaldo* ya conectado.
