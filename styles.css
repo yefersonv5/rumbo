@@ -530,3 +530,48 @@ input[type="date"].input::-webkit-datetime-edit { padding: 0; }
 .decision.due { border-color: color-mix(in srgb, var(--amber) 45%, var(--line)); }
 .dec-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
 .dec-btns .btn { width: 100%; }
+
+/* ───── Vistas del portafolio ───── */
+.view-switch { display: flex; gap: 4px; background: var(--surface-2); padding: 4px; border-radius: 14px; margin: 12px 0 4px; }
+.view-switch button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 0; background: none; padding: 8px 6px; border-radius: 11px; font-weight: 600; font-size: 13.5px; color: var(--ink-2); cursor: pointer; white-space: nowrap; }
+.view-switch button svg { width: 17px; height: 17px; }
+.view-switch button.on { background: var(--surface); color: var(--accent); box-shadow: var(--shadow); }
+.board { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
+.bcol { flex: 0 0 auto; width: min(78vw, 280px); min-width: 0; scroll-snap-align: start; display: flex; flex-direction: column; gap: 8px; background: var(--surface-2); border-radius: 16px; padding: 10px; }
+.bcol-h { display: flex; align-items: center; justify-content: space-between; padding: 2px 4px 4px; font-size: 14px; }
+.bcol-h .count { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 700; }
+.bcard { padding: 12px; cursor: pointer; border-radius: 14px; min-width: 0; overflow: hidden; }
+.bcard b { font-size: 14px; }
+.gantt { overflow: hidden; }
+.gt-head, .gt-row { display: grid; grid-template-columns: minmax(0, 34%) minmax(0, 1fr); gap: 10px; align-items: center; }
+.gt-head { margin-bottom: 6px; }
+.gt-head .gt-track { position: relative; height: 18px; }
+.gt-head .gt-track span { position: absolute; top: 0; font-size: 11px; color: var(--ink-3); transform: translateX(-2px); white-space: nowrap; border-left: 1px solid var(--grid); padding-left: 4px; }
+.gt-body { position: relative; }
+.gt-today { position: absolute; top: -8px; bottom: -8px; width: 0; border-left: 2px dashed var(--red); z-index: 1; pointer-events: none; opacity: .7; }
+.gt-row { padding: 7px 0; border-top: 1px solid var(--line); cursor: pointer; }
+.gt-name { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; min-width: 0; }
+.gt-track { position: relative; height: 16px; }
+.gt-bar { position: absolute; top: 2px; height: 12px; border-radius: 6px; background: var(--rc); }
+.gt-tail { position: absolute; top: 6px; height: 4px; border-radius: 2px; background: var(--ink-3); opacity: .35; }
+.gt-mk { position: absolute; top: 3px; width: 10px; height: 10px; transform: translateX(-5px) rotate(45deg); border-radius: 2px; display: inline-block; }
+.gt-mk.dec { background: var(--amber); }
+.gt-mk.dec.ok { background: var(--green); }
+.gt-mk.ses { background: var(--ink); }
+.kb { display: inline-block; width: 18px; height: 8px; border-radius: 4px; background: var(--accent); }
+.kb.tail { height: 4px; background: var(--ink-3); opacity: .5; }
+.kb.today { width: 0; height: 12px; border-left: 2px dashed var(--red); border-radius: 0; background: none; }
+@media (max-width: 520px) { .gt-head, .gt-row { grid-template-columns: minmax(0, 40%) minmax(0, 1fr); } }
+
+/* ───── Revisión semanal, objetivos, delegado y prioridad ───── */
+.stepn { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: var(--on-accent); font-size: 12px; margin-right: 8px; }
+.salud-row { align-items: flex-start; }
+.salud-row .dot { margin-top: 6px; }
+.sm-in { margin-top: 6px; padding: 7px 10px; font-size: 13px; }
+.objetivos { margin-top: 12px; }
+.objetivos h3 { font-size: 14px; }
+.obj { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14.5px; cursor: pointer; }
+.obj:first-of-type { border-top: 0; }
+.obj.done span { text-decoration: line-through; color: var(--ink-3); }
+.star-on { display: inline-flex; color: var(--amber); margin-right: 4px; vertical-align: -2px; }
+.star-on svg { width: 15px; height: 15px; }

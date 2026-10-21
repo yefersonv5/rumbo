@@ -196,3 +196,10 @@ alter table programas add column if not exists es_nuevo boolean default true;
 
 -- Sesiones de cierre financiero con Presupuestos (las registra el dueño en Más)
 create table if not exists sesiones_cierre (id uuid primary key default gen_random_uuid(), fecha date not null, nota text, created_at timestamptz default now());
+
+-- Metodologías de gestión de proyectos: estado declarado del programa, prioridad y semanas (objetivos y revisión)
+alter table programas add column if not exists salud text;        -- en_curso | en_riesgo | bloqueado
+alter table programas add column if not exists salud_nota text;
+alter table programas add column if not exists salud_fecha date;
+alter table items add column if not exists prioridad boolean default false;
+create table if not exists semanas (id uuid primary key default gen_random_uuid(), lunes date not null unique, objetivos jsonb default '[]', nota text, revisada_at timestamptz, created_at timestamptz default now());

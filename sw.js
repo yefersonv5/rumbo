@@ -1,7 +1,7 @@
 // Service worker mínimo: primero red, y si no hay conexión, la última copia guardada de la app.
 // Los datos de Supabase nunca se guardan aquí.
-const CACHE = 'rumbo-20261021002135';
-const SHELL = ['./', 'index.html', 'styles.css?v=20261021002135', 'app.js?v=20261021002135', 'plantillas.js?v=20261021002135', 'config.js?v=20261021002135', 'manifest.json', 'icon.png'];
+const CACHE = 'rumbo-20261021003017';
+const SHELL = ['./', 'index.html', 'styles.css?v=20261021003017', 'app.js?v=20261021003017', 'plantillas.js?v=20261021003017', 'config.js?v=20261021003017', 'manifest.json', 'icon.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));

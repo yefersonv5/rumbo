@@ -2,7 +2,7 @@
 (function () {
   // ───────────── Constantes ─────────────
   const CFG = window.RUMBO_CONFIG || {};
-  const TABLES = ['rutas', 'modulos', 'plantilla_items', 'entidades', 'contactos', 'programas', 'items', 'bitacora', 'documentos', 'facturacion', 'sesiones_cierre'];
+  const TABLES = ['rutas', 'modulos', 'plantilla_items', 'entidades', 'contactos', 'programas', 'items', 'bitacora', 'documentos', 'facturacion', 'sesiones_cierre', 'semanas'];
   const ESTADOS_ITEM = { pendiente: 'Pendiente', en_curso: 'En curso', esperando: 'Esperando', hecho: 'Hecho', no_aplica: 'No aplica' };
   const ESTADOS_PROG = { activo: 'Activo', pausa: 'En pausa', cerrado: 'Cerrado', perdido: 'Perdido' };
   // Responsables por cargo (nunca nombres propios)
@@ -27,7 +27,7 @@
   const TIPO_CM_LARGO = { 1: 'Cursos y cursos especializados (certificaciones)', 2: 'Talleres', 3: 'Diplomados', 4: 'Seminarios, congresos o simposios', 5: 'Otro' };
   const PLATAFORMAS = ['Moodle El Bosque', 'Plataforma del cliente', 'Zoom', 'Teams', 'Presencial', 'Otra'];
   const MESES_CM = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
-  const BUILD = '20261021002135';
+  const BUILD = '20261021003017';
 
   const S = {
     data: Object.fromEntries(TABLES.map(t => [t, []])),
@@ -393,11 +393,17 @@
     sun: I('<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>'),
     bell: I('<path d="M6 16V11a6 6 0 0112 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 004 0"/>'),
     later: I('<path d="M5 12h12M13 7l5 5-5 5"/>'),
+    star: I('<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>'),
+    starOn: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg>',
+    list: I('<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>'),
+    board: I('<rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="10" y="4" width="5" height="11" rx="1.5"/><rect x="17" y="4" width="4" height="7" rx="1.5"/>'),
+    gantt: I('<path d="M4 4v16h16"/><path d="M7 8h7M10 12h8M8 16h5" stroke-width="3"/>'),
+    review: I('<path d="M4 12a8 8 0 1 0 2.4-5.7L4 8.5"/><path d="M4 4v4.5h4.5M12 8v4l3 2"/>'),
     check: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
   };
 
   // ───────────── Navegación ─────────────
-  const VISTAS = ['inicio', 'hoy', 'programas', 'calendario', 'mas', 'plantillas'];
+  const VISTAS = ['inicio', 'hoy', 'programas', 'calendario', 'mas', 'plantillas', 'revision'];
   function routeFromHash() {
     const [n0, id, tab] = location.hash.replace(/^#\/?/, '').split('/');
     const n = n0;
@@ -410,14 +416,14 @@
     if (location.hash !== h) location.hash = h;
     else { routeFromHash(); render(); }
   }
-  const ORDEN_VISTA = { inicio: 0, hoy: 1, calendario: 2, programas: 3, mas: 4, plantillas: 5, programa: 6 };
+  const ORDEN_VISTA = { inicio: 0, hoy: 1, calendario: 2, programas: 3, mas: 4, plantillas: 5, programa: 6, revision: 7 };
   window.addEventListener('hashchange', () => {
     const antes = S.view.name;
     routeFromHash(); closeModal(); render(); window.scrollTo(0, 0);
     // Animación corta al cambiar de pantalla: entra desde la derecha al avanzar y desde la izquierda al volver.
     // Solo al entrar a un detalle (ficha del programa, plantillas) o al volver de él, como en Caudal.
     // Entre pestañas de la barra inferior no hay animación: la pantalla cambia quieta.
-    const DETALLE = ['programa', 'plantillas'];
+    const DETALLE = ['programa', 'plantillas', 'revision'];
     const m = $('#app main');
     if (m && antes !== S.view.name && (DETALLE.includes(S.view.name) || DETALLE.includes(antes))) {
       m.classList.add(DETALLE.includes(S.view.name) ? 'navfwd' : 'navback');
@@ -437,10 +443,11 @@
     else if (v === 'programa') body = viewPrograma();
     else if (v === 'calendario') body = viewCalendario();
     else if (v === 'hoy') body = viewHoy();
+    else if (v === 'revision') body = viewRevision();
     else if (v === 'mas') body = viewMas();
     else if (v === 'plantillas') body = viewPlantillas();
     else body = viewInicio();
-    const sec = v === 'programa' ? 'programas' : v === 'plantillas' ? 'mas' : v;
+    const sec = v === 'programa' ? 'programas' : v === 'plantillas' ? 'mas' : v === 'revision' ? 'hoy' : v;
     const nb = (k, l, ic) => `<button class="${sec === k ? 'on' : ''}" data-act="nav" data-to="${k}" aria-label="${l}">${ic}<span>${l}</span></button>`;
     app.innerHTML = `
       ${S.mode === 'local' ? '<div class="banner">Modo local: los datos viven solo en este navegador.</div>' : ''}
@@ -588,7 +595,7 @@
     const chk = i.estado === 'hecho' ? 'on' : i.estado === 'no_aplica' ? 'na' : '';
     return `<div class="li ${cls}" data-act="edit-item" data-id="${i.id}">
       <button class="check ${chk}" data-act="toggle" data-id="${i.id}" aria-label="Marcar como hecho">${i.estado === 'hecho' ? ICON.check : i.estado === 'no_aplica' ? '–' : ''}</button>
-      <div class="grow"><div class="title">${esc(i.titulo)}</div>${sub.length ? `<div class="sub">${sub.join(' · ')}</div>` : ''}</div>
+      <div class="grow"><div class="title">${i.prioridad && abierto(i) ? `<span class="star-on">${ICON.starOn}</span>` : ''}${esc(i.titulo)}</div>${sub.length ? `<div class="sub">${sub.join(' · ')}</div>` : ''}</div>
       ${i.enlace ? `<a class="icon-btn" href="${esc(i.enlace)}" target="_blank" rel="noopener" data-act="noop" aria-label="Abrir enlace">${ICON.link}</a>` : ''}
       ${acciones || pill}
     </div>`;
@@ -721,7 +728,7 @@
     const d = S.dia, esHoy = d === t;
     const its = itemsVisibles();
     const agenda = its.filter(i => delDia(i, d) && i.estado !== 'no_aplica')
-      .sort((a, b) => (abierto(b) - abierto(a)) || (a.hora || '99').localeCompare(b.hora || '99') || (a.created_at || '').localeCompare(b.created_at || ''));
+      .sort((a, b) => (abierto(b) - abierto(a)) || (a.hora || '99').localeCompare(b.hora || '99') || (!!b.prioridad - !!a.prioridad) || (a.created_at || '').localeCompare(b.created_at || ''));
     const seguir = its.filter(i => i.estado === 'esperando' && (esHoy ? (!i.fecha_seguimiento || i.fecha_seguimiento <= d) : i.fecha_seguimiento === d));
     const atrasado = esHoy ? its.filter(i => abierto(i) && i.estado !== 'esperando' &&
       ((i.plan_fecha && i.plan_fecha < t) || (!i.plan_fecha && i.fecha_limite && i.fecha_limite < t))).sort(byDate('fecha_limite')) : [];
@@ -750,7 +757,14 @@
     const h = i => i.hora || '';
     const agendaHtml = agenda.length ? grupo('Mañana · antes de 12', i => abierto(i) && h(i) && h(i) < '12') + grupo('Tarde', i => abierto(i) && h(i) >= '12') +
       grupo('Sin hora', i => abierto(i) && !h(i)) + grupo('Hecho', i => !abierto(i)) : '';
+    if (S.hoyModo === 'delegado') return viewDelegado();
+    const sem = semanaDe(lunesDe(t)), objetivos = (sem?.objetivos || []).filter(o => o.t);
+    const objCard = objetivos.length ? `<div class="card pad objetivos"><div class="row between"><h3>Objetivos de la semana</h3><button class="link" data-act="nav" data-to="revision">Revisar</button></div>
+      ${objetivos.map((o, k) => `<label class="obj ${o.hecho ? 'done' : ''}"><input type="checkbox" data-change="obj" data-k="${k}" ${o.hecho ? 'checked' : ''}><span>${esc(o.t)}</span></label>`).join('')}</div>` : '';
+    const revisarCard = !sem?.revisada_at && [4, 5, 6, 0].includes(new Date().getDay()) ? `<div class="card today-card" data-act="nav" data-to="revision" role="button" style="margin-top:12px">
+      <span class="kpi-ic violet">${ICON.review}</span><div class="grow"><b>Revisión semanal</b><span class="small muted">15 minutos para cerrar la semana y preparar la siguiente</span></div><span class="muted">${ICON.next}</span></div>` : '';
     return `<div class="page-head"><div><p class="fecha cap">${esc(parse(d).toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' }))}</p><h1 class="cap">${esc(titulo)}</h1></div>${avatarBtn()}</div>
+      ${modoHoy()}
       <div class="week">${strip}</div>
       <div class="dash-cols">
         <div>
@@ -769,10 +783,82 @@
           ${seguir.length ? seccion('Seguimientos', seguir.map(i => itemRow(i, true, mover(i, 'Luego'))).join(''), seguir.length) : ''}
         </div>
         <div>
+          ${objCard}${revisarCard}
           ${sugeridos.length ? seccion('Sugeridos para hoy', sugeridos.map(i => itemRow(i, true, sumar(i))).join(''), undefined, '', '<span class="tiny muted">Siguiente paso de cada programa</span>') : ''}
           ${avisosCard(true)}
         </div>
       </div>`;
+  }
+
+  const modoHoy = () => `<div class="view-switch">
+    <button class="${S.hoyModo !== 'delegado' ? 'on' : ''}" data-act="hoy-modo" data-v="dia">${ICON.sun}<span>Mi día</span></button>
+    <button class="${S.hoyModo === 'delegado' ? 'on' : ''}" data-act="hoy-modo" data-v="delegado">${ICON.wait}<span>Delegado</span></button>
+    <button data-act="nav" data-to="revision">${ICON.review}<span>Revisión</span></button></div>`;
+  // Delegado: lo que depende de otros, agrupado por cargo (para tus reuniones con la asistente, el director o Presupuestos)
+  function viewDelegado() {
+    const t = today();
+    const its = itemsVisibles().filter(i => abierto(i) && ((i.responsable && i.responsable !== 'Yo') || i.estado === 'esperando'));
+    const quien = i => i.estado === 'esperando' ? (i.esperando_a || 'Sin definir') : i.responsable;
+    const fecha = i => i.estado === 'esperando' ? i.fecha_seguimiento : (i.plan_fecha || i.fecha_limite);
+    const g = {};
+    its.forEach(i => { (g[quien(i)] = g[quien(i)] || []).push(i); });
+    const grupos = Object.entries(g).map(([k, v]) => [k, v.sort((a, b) => (fecha(a) || '9').localeCompare(fecha(b) || '9'))])
+      .sort((a, b) => ((fecha(a[1][0]) || '9').localeCompare(fecha(b[1][0]) || '9')));
+    const urg = v => v.filter(i => fecha(i) && fecha(i) <= addDays(t, 7)).length;
+    return `<div class="page-head"><div><p class="fecha">Lo que depende de otros</p><h1>Delegado</h1></div>${avatarBtn()}</div>
+      ${modoHoy()}
+
+      <div class="dash-cols"><div>${grupos.map(([k, v]) => seccion(esc(k), v.slice(0, 12).map(i => itemRow(i)).join(''), v.length, '',
+        urg(v) ? `<span class="tiny" style="color:var(--amber)">${plural(urg(v), 'vence', 'vencen')} en 7 días</span>` : '')).join('') ||
+        '<div class="card empty section">Nada delegado ni en espera. Todo lo pendiente depende de ti.</div>'}</div><div></div></div>`;
+  }
+
+  // ───────────── Revisión semanal (GTD y Sunsama) ─────────────
+  const lunesDe = d => { const x = parse(d); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return isoOf(x); };
+  const semanaDe = l => S.data.semanas.find(x => x.lunes === l);
+  function viewRevision() {
+    const t = today(), lun = lunesDe(t), prox = addDays(lun, 7), sem = semanaDe(lun);
+    // Objetivos: de jueves a domingo se planea la semana siguiente; antes, la actual
+    const planLunes = [4, 5, 6, 0].includes(new Date().getDay()) ? prox : lun, planSem = semanaDe(planLunes);
+    const its = itemsVisibles();
+    const hechos = S.data.items.filter(i => i.estado === 'hecho' && i.fecha_hecho >= lun && i.fecha_hecho <= t);
+    const porProg = {};
+    hechos.forEach(i => { const k = i.programa_id ? nombreProg(byId('programas', i.programa_id)) : 'Tareas personales'; porProg[k] = (porProg[k] || 0) + 1; });
+    const fecha = i => i.estado === 'esperando' ? i.fecha_seguimiento : (i.plan_fecha || i.fecha_limite);
+    const arrastra = its.filter(i => abierto(i) && fecha(i) && fecha(i) < prox).sort((a, b) => fecha(a).localeCompare(fecha(b)));
+    const activos = S.data.programas.filter(p => p.estado === 'activo').sort((a, b) => SEM_ORDEN[semaforo(a)] - SEM_ORDEN[semaforo(b)]);
+    const fin14 = addDays(t, 14), viene = [];
+    activos.forEach(p => {
+      if (p.fecha_inicio > t && p.fecha_inicio <= fin14) viene.push([p.fecha_inicio, `Inicia ${nombreProg(p)}`, p.id]);
+      if (p.fecha_fin > t && p.fecha_fin <= fin14) viene.push([p.fecha_fin, `Termina ${nombreProg(p)}`, p.id]);
+      itemsDe(p.id).filter(i => abierto(i) && i.fecha_limite > t && i.fecha_limite <= fin14 && (i.clave === 'decision_apertura' || (i.dias_ref === 'sesion' && i.dias_rel === 0) || i.dias_ref === 'v20'))
+        .forEach(i => viene.push([i.fecha_limite, `${i.titulo.split('(')[0].trim()} · ${nombreProg(p)}`, p.id]));
+    });
+    S.data.sesiones_cierre.filter(x => x.fecha > t && x.fecha <= fin14).forEach(x => viene.push([x.fecha, 'Sesión de cierre financiero con Presupuestos', null]));
+    viene.sort((a, b) => a[0].localeCompare(b[0]));
+    const mover = i => `<div class="acts"><button class="mini on" data-act="mover" data-id="${i.id}" data-d="${t}">Hoy</button><button class="mini" data-act="mover" data-id="${i.id}" data-d="${prox}">Lunes</button></div>`;
+    const objs = [0, 1, 2].map(k => (planSem?.objetivos || [])[k]?.t || '');
+    const paso = (n, titulo, cuerpo, sub = '') => `<section class="section"><div class="section-head"><h3><span class="stepn">${n}</span>${titulo}</h3>${sub}</div>${cuerpo}</section>`;
+    return `<div class="page-head"><button class="btn ghost back" data-act="nav" data-to="hoy">${ICON.back}<span>Mi día</span></button>${sem?.revisada_at ? `<span class="pill green">Revisada ${fmtDate(sem.revisada_at.slice(0, 10))}</span>` : ''}</div>
+      <h1>Revisión semanal</h1><p class="muted small" style="margin:4px 0 0">Semana del ${fmtDate(lun)}. Cierra lo pendiente, actualiza el estado de tus programas y fija tres objetivos.</p>
+      <div class="dash-cols"><div>
+        ${paso(1, 'Lo que lograste', `<div class="card pad"><b style="font-size:22px">${plural(hechos.length, 'paso cerrado', 'pasos cerrados')}</b>
+          ${Object.keys(porProg).length ? `<div class="legend" style="margin-top:10px">${Object.entries(porProg).sort((a, b) => b[1] - a[1]).map(([k, n]) => `<div><i style="background:var(--accent)"></i><span class="grow">${esc(k)}</span><b>${n}</b></div>`).join('')}</div>` : '<p class="small muted">Esta semana todavía no hay pasos cerrados.</p>'}</div>`)}
+        ${paso(2, 'Lo que se arrastra', `<div class="card list">${arrastra.slice(0, 8).map(i => itemRow(i, true, mover(i))).join('') || '<div class="empty">Nada pendiente de esta semana. Bien.</div>'}
+          ${arrastra.length > 8 ? `<div class="empty">Y ${plural(arrastra.length - 8, 'pendiente más', 'pendientes más')}.</div>` : ''}</div>
+          ${arrastra.length ? `<button class="btn" style="width:100%;margin-top:8px" data-act="todo-lunes" data-d="${prox}">${ICON.later}<span>Pasar los ${arrastra.length} al lunes ${fmtDate(prox)}</span></button>` : ''}`,
+          arrastra.length ? `<span class="tiny muted">${arrastra.length} con fecha antes del lunes</span>` : '')}
+        ${paso(3, 'Estado de cada programa', `<div class="card list">${activos.map(p => `<div class="li salud-row" style="cursor:default">
+            <span class="dot ${semaforo(p)}"></span><div class="grow"><div class="title ellipsis" data-act="open" data-id="${p.id}" style="cursor:pointer">${esc(nombreProg(p))}</div>
+            <div class="sub">${esc(faseActual(p))} · ${avance(p).pct}%</div>
+            <input class="input sm-in" data-change="salud-nota" data-id="${p.id}" value="${esc(p.salud_nota || '')}" placeholder="Nota corta: qué lo frena o qué sigue"></div>
+            <select class="input" style="width:auto" data-change="salud" data-id="${p.id}">${opts(Object.entries(SALUD).map(([k, v]) => [k, v[0]]), p.salud || '', 'Sin estado')}</select></div>`).join('') || '<div class="empty">Sin programas activos.</div>'}</div>`)}
+      </div><div>
+        ${paso(4, 'Lo que viene en dos semanas', `<div class="card list">${viene.map(([f, txt, id]) => `<div class="li" ${id ? `data-act="open" data-id="${id}"` : 'style="cursor:default"'}><span class="pill accent">${relDate(f)}</span><div class="grow"><div class="title">${esc(txt)}</div></div></div>`).join('') || '<div class="empty">Sin hitos en las próximas dos semanas.</div>'}</div>`)}
+        ${paso(5, `Objetivos de la semana del ${fmtDate(planLunes)}`, `<form class="card pad" data-form="objetivos" data-lunes="${planLunes}">
+          ${objs.map((o, k) => `<div class="field"><input class="input" name="o${k}" value="${esc(o)}" placeholder="${['Ej.: Cerrar la propuesta de Solventum', 'Ej.: Solicitar certificados del diplomado APS', 'Ej.: Cierre financiero de Baxter'][k]}"></div>`).join('')}
+          <button class="btn primary" style="width:100%">Guardar y terminar la revisión</button></form>`)}
+      </div></div>`;
   }
 
   // ───────────── Avisos (notificaciones push) ─────────────
@@ -896,6 +982,9 @@
       .sort((a, b) => (SEM_ORDEN[semaforo(a)] - SEM_ORDEN[semaforo(b)]) || (a.fecha_inicio || '9999').localeCompare(b.fecha_inicio || '9999'));
   }
   const SEM_TXT = { rojo: 'Atrasado', amarillo: 'Atento', verde: 'Al día', gris: '' };
+  // Estado declarado (como los "status updates" de Asana): lo pones tú en la revisión semanal o en la ficha
+  const SALUD = { en_curso: ['En curso', 'green'], en_riesgo: ['En riesgo', 'amber'], bloqueado: ['Bloqueado', 'red'] };
+  const saludPill = p => p.salud && SALUD[p.salud] ? `<span class="pill ${SALUD[p.salud][1]}" title="${esc(p.salud_nota || '')}">${SALUD[p.salud][0]}</span>` : '';
   const SEM_PILL = { rojo: 'red', amarillo: 'amber', verde: 'green', gris: '' };
   function programCard(p) {
     const av = avance(p), sem = semaforo(p), fa = faseActual(p), nx = proximo(p), t = today();
@@ -909,7 +998,7 @@
           <div class="row wrap" style="margin-top:6px;gap:6px">
             <span class="pill route" style="--rc:${COL_RUTA[r?.clave] || 'var(--ink-3)'}">${esc(r?.nombre || '')}</span>
             <span class="pill">${esc(p.estado_cm || 'Proyección')}</span>
-            ${p.estado === 'activo' && SEM_TXT[sem] ? `<span class="pill ${SEM_PILL[sem]}">${SEM_TXT[sem]}</span>` : ''}
+            ${p.estado === 'activo' ? (saludPill(p) || (SEM_TXT[sem] ? `<span class="pill ${SEM_PILL[sem]}">${SEM_TXT[sem]}</span>` : '')) : ''}
           </div></div>
       </div>
       <div class="pc-foot">
@@ -926,7 +1015,62 @@
     const total = ps.reduce((s, p) => s + ingresosCM(p), 0);
     return `<p class="small muted">${plural(ps.length, 'programa')}${total ? ` · ${money(total)}` : ''}</p><div class="grid">${ps.map(programCard).join('')}</div>`;
   }
+  // Vistas del portafolio (como Monday, Asana o Jira): lista, tablero por fase y cronograma
+  const ORDEN_FASES = ['Oportunidad', 'Solicitud', 'Diseño', 'Revisión', 'Negociación', 'Formalización', 'Aprobación', 'Montaje', 'Promoción', 'Captación', 'Apertura', 'Lanzamiento',
+    'Alistamiento', 'Operación', 'Ejecución', 'Certificación', 'Cierre', 'Cierre financiero', 'Liquidación', 'Vigencia', 'Completo'];
+  function tableroProgramas() {
+    const ps = programasFiltrados();
+    if (!ps.length) return '<div class="card empty">No hay programas con estos filtros.</div>';
+    const col = {};
+    ps.forEach(p => { const f = faseActual(p); (col[f] = col[f] || []).push(p); });
+    const fases = Object.keys(col).sort((a, b) => (ORDEN_FASES.indexOf(a) + 1 || 99) - (ORDEN_FASES.indexOf(b) + 1 || 99));
+    const mini = p => {
+      const nx = proximo(p), t = today(), fx = nx ? (nx.estado === 'esperando' ? nx.fecha_seguimiento : nx.fecha_limite) : null, av = avance(p), sem = semaforo(p);
+      return `<div class="card bcard" data-act="open" data-id="${p.id}">
+        <div class="row" style="gap:8px"><span class="dot ${sem}"></span><b class="grow ellipsis">${esc(nombreProg(p))}</b><span class="tiny muted">${av.pct}%</span></div>
+        <div class="tiny muted ellipsis">${esc(empresaTxt(p))}</div>
+        <div class="bar" style="margin:6px 0"><i style="width:${av.pct}%"></i></div>
+        ${nx ? `<div class="tiny ellipsis">${esc(nx.titulo)}</div>` : ''}
+        <div class="row wrap" style="gap:4px;margin-top:6px">${saludPill(p)}${fx ? `<span class="pill ${fx < t ? 'red' : fx <= addDays(t, 3) ? 'amber' : ''}">${relDate(fx)}</span>` : ''}${p.fecha_inicio ? `<span class="pill">Inicio ${fmtDate(p.fecha_inicio)}</span>` : ''}</div>
+      </div>`;
+    };
+    return `<div class="board">${fases.map(f => `<div class="bcol"><div class="bcol-h"><b>${esc(f)}</b><span class="count">${col[f].length}</span></div>${col[f].map(mini).join('')}</div>`).join('')}</div>
+      <p class="tiny muted" style="margin-top:8px">Cada columna es la fase actual: la del primer paso esencial sin terminar.</p>`;
+  }
+  function cronograma() {
+    const t = today();
+    const ps = programasFiltrados().filter(p => p.fecha_inicio).sort((a, b) => a.fecha_inicio.localeCompare(b.fecha_inicio));
+    const sin = programasFiltrados().filter(p => !p.fecha_inicio);
+    if (!ps.length) return `<div class="card empty">Ningún programa con estos filtros tiene fecha de inicio todavía.</div>`;
+    const finDe = p => { const c = itemsDe(p.id).filter(i => i.dias_ref === 'v20' && i.fecha_limite).map(i => i.fecha_limite).sort().pop(); return c || p.fecha_fin || p.fecha_inicio; };
+    let lo = [t, ...ps.map(p => p.fecha_inicio)].sort()[0], hi = [addDays(t, 30), ...ps.map(finDe)].sort().pop();
+    lo = addDays(lo, -7); if (diffDays(hi, lo) > 400) hi = addDays(lo, 400);
+    const span = diffDays(hi, lo), X = d => Math.max(0, Math.min(100, diffDays(d, lo) / span * 100));
+    const meses = [];
+    { const x = parse(lo); x.setDate(1); x.setMonth(x.getMonth() + 1); while (isoOf(x) <= hi) { meses.push(isoOf(x)); x.setMonth(x.getMonth() + 1); } }
+    const fila = p => {
+      const ini = p.fecha_inicio, fin = p.fecha_fin || p.fecha_inicio, cierre = finDe(p), r = rutaDe(p);
+      const dec = itemsDe(p.id).find(i => i.clave === 'decision_apertura');
+      const ses = itemsDe(p.id).find(i => i.dias_ref === 'sesion' && i.dias_rel === 0);
+      const w = Math.max(1.2, X(fin) - X(ini));
+      return `<div class="gt-row" data-act="open" data-id="${p.id}">
+        <div class="gt-name"><span class="dot ${semaforo(p)}"></span><span class="ellipsis">${esc(nombreProg(p))}</span></div>
+        <div class="gt-track"><i class="gt-today" style="left:${X(t)}%"></i>
+          ${cierre > fin ? `<i class="gt-tail" style="left:${X(fin)}%;width:${X(cierre) - X(fin)}%"></i>` : ''}
+          <i class="gt-bar" style="left:${X(ini)}%;width:${w}%;--rc:${COL_RUTA[r?.clave] || 'var(--accent)'}" title="${esc(fmtDate(ini))} a ${esc(fmtDate(fin))}"></i>
+          ${dec && dec.fecha_limite ? `<em class="gt-mk dec ${abierto(dec) ? '' : 'ok'}" style="left:${X(dec.fecha_limite)}%" title="Decisión de apertura ${esc(fmtDate(dec.fecha_limite))}"></em>` : ''}
+          ${ses && ses.fecha_limite ? `<em class="gt-mk ses" style="left:${X(ses.fecha_limite)}%" title="Cierre financiero ${esc(fmtDate(ses.fecha_limite))}"></em>` : ''}
+        </div></div>`;
+    };
+    return `<div class="card pad gantt">
+      <div class="gt-head"><div class="gt-name tiny muted">${parse(lo).getFullYear() === parse(hi).getFullYear() ? parse(lo).getFullYear() : parse(lo).getFullYear() + ' a ' + parse(hi).getFullYear()}</div><div class="gt-track">${meses.map((m, k) => (k % Math.ceil(meses.length / 7) === 0) ? `<span style="left:${X(m)}%">${MESES[parse(m).getMonth()]}</span>` : '').join('')}</div></div>
+      <div class="gt-body">${ps.map(fila).join('')}</div>
+      <div class="cal-key" style="margin-top:12px"><span><i class="kb"></i>Ejecución</span><span><i class="kb tail"></i>Cierre y liquidación</span><span><em class="gt-mk dec" style="position:static"></em>Decisión de apertura</span><span><em class="gt-mk ses" style="position:static"></em>Sesión de cierre</span><span><i class="kb today"></i>Hoy</span></div>
+    </div>${sin.length ? `<p class="tiny muted" style="margin-top:8px">Sin fecha de inicio: ${sin.map(p => esc(nombreProg(p))).join(', ')}.</p>` : ''}`;
+  }
   function viewProgramas() {
+    let pv = 'lista'; try { pv = localStorage.getItem('rumbo.pv') || 'lista'; } catch (e) { /* sin almacenamiento */ }
+    const vb = (k, l, ic) => `<button class="${pv === k ? 'on' : ''}" data-act="pv" data-v="${k}">${ic}<span>${l}</span></button>`;
     const n = e => S.data.programas.filter(p => e === 'todos' || p.estado === e).length;
     const chip = (v, l) => `<button class="chip ${S.f.estado === v ? 'on' : ''}" data-act="f-estado" data-v="${v}">${l}<span>${n(v)}</span></button>`;
     return `
@@ -936,7 +1080,8 @@
         <select class="input" data-change="f-ruta">${opts(S.data.rutas.map(r => [r.id, r.nombre]), S.f.ruta, 'Todas las rutas')}</select>
       </div>
       <div class="chips">${chip('activo', 'En curso')}${chip('cerrado', 'Ejecutados')}${chip('pausa', 'Aplazados')}${chip('perdido', 'Cancelados')}${chip('todos', 'Todos')}</div>
-      <div id="prog-list" class="section">${listaProgramas()}</div>`;
+      <div class="view-switch">${vb('lista', 'Lista', ICON.list)}${vb('tablero', 'Tablero', ICON.board)}${vb('cronograma', 'Cronograma', ICON.gantt)}</div>
+      <div id="prog-list" class="section">${pv === 'tablero' ? tableroProgramas() : pv === 'cronograma' ? cronograma() : listaProgramas()}</div>`;
   }
 
   // Sesiones de cierre financiero con Presupuestos (cada 15 días)
@@ -997,6 +1142,13 @@
         <button class="btn danger" data-act="dec-cancela" data-id="${p.id}">Cancelar</button>
       </div></div>`;
   }
+  function formSalud(p) {
+    modal(`<form data-form="saludf" data-id="${p.id}">${sheetHead('Estado del programa')}
+      <p class="small muted" style="margin-top:-6px">${esc(p.nombre)}. Queda en la bitácora como actualización de estado.</p>
+      ${fld('Cómo va', seg('salud', Object.entries(SALUD).map(([k, v]) => [k, v[0]]), p.salud || 'en_curso'))}
+      ${fld('Nota', `<textarea class="input" name="salud_nota" rows="2" placeholder="Ej.: Falta el extracto del acta; el director lo envía el viernes">${esc(p.salud_nota || '')}</textarea>`)}
+      <div class="sheet-actions"><button type="button" class="btn" data-act="close">Cancelar</button><button class="btn primary">Guardar</button></div></form>`);
+  }
   function formAplazar(p) {
     modal(`<form data-form="aplazar" data-id="${p.id}">${sheetHead('Aplazar el programa')}
       <p class="small muted" style="margin-top:-6px">Con la fecha nueva, Rumbo recalcula todos los pasos pendientes y sus avisos.</p>
@@ -1054,7 +1206,9 @@
           ${ring(av.pct, 76, 8)}
           <div class="grow" style="min-width:0"><h1>${esc(p.nombre)}</h1>
             <div class="muted small" style="margin-top:4px">${esc(empresaTxt(p))} · ${esc(rutaDe(p)?.nombre || '')}${mods.length ? ' + ' + esc(mods.join(', ')) : ''}</div>
-            ${SEM_TXT[sem] && p.estado === 'activo' ? `<span class="pill ${SEM_PILL[sem]}" style="margin-top:8px">${SEM_TXT[sem]}</span>` : ''}</div>
+            ${p.estado === 'activo' ? `<div class="row wrap" style="margin-top:8px;gap:6px">${SEM_TXT[sem] ? `<span class="pill ${SEM_PILL[sem]}">${SEM_TXT[sem]}</span>` : ''}${saludPill(p)}
+              <button class="mini" data-act="salud" data-id="${p.id}">${p.salud ? 'Actualizar estado' : 'Dar estado'}</button></div>
+              ${p.salud_nota ? `<p class="small muted" style="margin:6px 0 0">${esc(p.salud_nota)} <span class="tiny">· ${fmtDate(p.salud_fecha)}</span></p>` : ''}` : ''}</div>
         </div>
         ${p.estado === 'perdido' && p.motivo_perdida ? `<p class="small" style="color:var(--red)">Motivo: ${esc(p.motivo_perdida)}</p>` : ''}
         <div class="mini-kpis">
@@ -1270,7 +1424,7 @@
     if (!standalone) return;
     let x0 = null, y0 = 0, dx = 0, on = false, t0 = 0;
     const main = () => $('#app main');
-    const puedeVolver = () => isOpen() || S.view.name === 'programa' || S.view.name === 'plantillas';
+    const puedeVolver = () => isOpen() || ['programa', 'plantillas', 'revision'].includes(S.view.name);
     document.addEventListener('touchstart', e => {
       x0 = null;
       if (window.innerWidth >= 860 || e.touches.length > 1 || !puedeVolver()) return;
@@ -1295,7 +1449,7 @@
       if (!m) return;
       if (ok) {
         m.style.transition = 'transform .18s ease-out'; m.style.transform = 'translateX(100%)';
-        setTimeout(() => { S.navBack = true; if (history.length > 1) history.back(); else go(S.view.name === 'plantillas' ? 'mas' : 'programas'); }, 180);
+        setTimeout(() => { S.navBack = true; if (history.length > 1) history.back(); else go(S.view.name === 'plantillas' ? 'mas' : S.view.name === 'revision' ? 'hoy' : 'programas'); }, 180);
       } else {
         m.style.transition = 'transform .2s ease-out'; m.style.transform = '';
         setTimeout(() => { m.style.transition = ''; }, 220);
@@ -1393,6 +1547,7 @@
       ${p ? `<p class="small muted" style="margin-top:-6px"><a href="#/programa/${p.id}">${esc(p.nombre)}</a></p>` : ''}
       ${fld('Título', inp('titulo', i.titulo, 'required'))}
       ${fld('Estado', seg('estado', Object.entries(ESTADOS_ITEM), i.estado))}
+      <label class="small row" style="margin-bottom:12px"><input type="checkbox" name="prioridad" ${i.prioridad ? 'checked' : ''}> Prioritaria: va primero en tu agenda</label>
       <h4 class="fsec">Mi día</h4>
       <div class="two">${fld('Hacerlo el', inp('plan_fecha', i.plan_fecha, 'type="date"'))}${fld('Hora', inp('hora', i.hora ? i.hora.slice(0, 5) : '', 'type="time"'))}</div>
       <div class="chips" style="margin:-4px 0 12px">
@@ -1537,6 +1692,16 @@
     noop() {},
     nav: el => go(el.dataset.to),
     'nav-programas': () => go('programas'),
+    async 'todo-lunes'(el) {
+      const t = today(), prox = el.dataset.d, fecha = i => i.estado === 'esperando' ? i.fecha_seguimiento : (i.plan_fecha || i.fecha_limite);
+      const its = itemsVisibles().filter(i => abierto(i) && fecha(i) && fecha(i) < prox);
+      if (!confirm(`¿Pasar ${plural(its.length, 'pendiente')} al lunes ${fmtDate(prox)}? Se planean para ese día; la fecha límite original no cambia.`)) return;
+      for (const i of its) await db.update('items', i.id, i.estado === 'esperando' ? { fecha_seguimiento: prox } : { plan_fecha: prox });
+      render(); toast(`${plural(its.length, 'pendiente')} para el lunes`);
+    },
+    pv(el) { try { localStorage.setItem('rumbo.pv', el.dataset.v); } catch (e) { /* sin almacenamiento */ } render(); },
+    'hoy-modo'(el) { S.hoyModo = el.dataset.v; render(); },
+    salud: el => formSalud(byId('programas', el.dataset.id)),
     dia(el) { S.dia = el.dataset.d; render(); },
     async mover(el) {
       const i = byId('items', el.dataset.id), d = el.dataset.d;
@@ -1780,6 +1945,7 @@
       const i = byId('items', f.dataset.id);
       const patch = clean({ titulo: d.titulo, estado: d.estado, fase: d.fase, responsable: d.responsable, fecha_limite: d.fecha_limite, enlace: d.enlace, nota: d.nota,
         plan_fecha: d.plan_fecha, hora: d.hora });
+      patch.prioridad = d.prioridad === 'on';
       if ('esencial' in d || byId('programas', i.programa_id)) patch.esencial = d.esencial === 'on';
       if (!i.programa_id && d.programa_id) {
         const p = byId('programas', d.programa_id);
@@ -1864,6 +2030,21 @@
       await db.insert('sesiones_cierre', { fecha: d.fecha, nota: null });
       const n = await recalcularCierres(); render(); toast(n ? `Sesión agregada. ${plural(n, 'paso movido', 'pasos movidos')}` : 'Sesión agregada');
     },
+    async objetivos(d, f) {
+      const l = f.dataset.lunes, objetivos = [d.o0, d.o1, d.o2].map(x => (x || '').trim()).filter(Boolean).map(t => ({ t, hecho: false }));
+      const prev = semanaDe(l);
+      if (prev) { const viejos = prev.objetivos || []; objetivos.forEach(o => { const v = viejos.find(x => x.t === o.t); if (v) o.hecho = v.hecho; }); await db.update('semanas', prev.id, { objetivos }); }
+      else await db.insert('semanas', { lunes: l, objetivos, nota: null, revisada_at: null });
+      const actual = lunesDe(today()), s = semanaDe(actual);
+      if (s) await db.update('semanas', s.id, { revisada_at: nowIso() }); else await db.insert('semanas', { lunes: actual, objetivos: [], nota: null, revisada_at: nowIso() });
+      go('hoy'); toast('Revisión guardada');
+    },
+    async saludf(d, f) {
+      const p = byId('programas', f.dataset.id);
+      await db.update('programas', p.id, clean({ salud: d.salud, salud_nota: d.salud_nota, salud_fecha: today() }));
+      await db.insert('bitacora', { programa_id: p.id, fecha: today(), tipo: 'Decisión', resumen: `Estado: ${SALUD[d.salud]?.[0] || 'sin estado'}.${d.salud_nota ? ' ' + d.salud_nota.trim() : ''}`, proxima_accion: null });
+      closeModal(); render();
+    },
     async aplazar(d, f) {
       const p = byId('programas', f.dataset.id), antes = p.fecha_inicio;
       await db.update('programas', p.id, clean({ fecha_inicio: d.fecha_inicio, fecha_fin: d.fecha_fin || p.fecha_fin, estado_cm: 'Aplazado', estado: 'activo', actualizado: nowIso() }));
@@ -1886,6 +2067,18 @@
       await db.insert('bitacora', { programa_id: p.id, fecha: today(), tipo: 'Decisión', resumen: `Estado en el Cuadro Maestro: ${antes} → ${cm}.`, proxima_accion: null });
       render();
       if (cm === 'Cancelado' && !p.motivo_perdida) formPerdido(p);
+    },
+    async salud(el) {
+      await db.update('programas', el.dataset.id, { salud: el.value || null, salud_fecha: today() }); render();
+    },
+    async 'salud-nota'(el) {
+      await db.update('programas', el.dataset.id, { salud_nota: el.value.trim() || null, salud_fecha: today() });
+    },
+    async obj(el) {
+      const s = semanaDe(lunesDe(today())); if (!s) return;
+      const objetivos = (s.objetivos || []).map(o => ({ ...o }));
+      const vis = objetivos.filter(o => o.t), o = vis[Number(el.dataset.k)]; if (o) o.hecho = el.checked;
+      await db.update('semanas', s.id, { objetivos }); render();
     },
     async import(el) { if (el.files[0]) await importJSON(el.files[0]); },
   };
@@ -1915,7 +2108,19 @@
   document.addEventListener('input', e => {
     if (e.target.dataset.input === 'buscar') { S.f.q = e.target.value; const l = $('#prog-list'); if (l) l.innerHTML = listaProgramas(); }
   });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { closeModal(); return; }
+    // Atajos en el PC (como Linear): N nuevo programa, C captura, / buscar, R revisión, 1 a 4 pestañas
+    if (e.metaKey || e.ctrlKey || e.altKey || isOpen() || !S.ready || (S.mode === 'remote' && !S.user)) return;
+    const tag = (e.target.tagName || '').toLowerCase();
+    if (['input', 'textarea', 'select'].includes(tag) || e.target.isContentEditable) return;
+    const k = e.key.toLowerCase(), tabs = { 1: 'inicio', 2: 'hoy', 3: 'calendario', 4: 'programas' };
+    if (k === 'n') { e.preventDefault(); formPrograma(); }
+    else if (k === 'c') { e.preventDefault(); formCaptura(); }
+    else if (k === 'r') { e.preventDefault(); go('revision'); }
+    else if (k === '/') { e.preventDefault(); go('programas'); setTimeout(() => { const q = $('[data-input="buscar"]'); if (q) q.focus(); }, 50); }
+    else if (tabs[k]) { e.preventDefault(); go(tabs[k]); }
+  });
 
   // Tooltip del gráfico de semanas: línea vertical + punto + texto al pasar el dedo o el mouse.
   (() => {

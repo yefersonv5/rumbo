@@ -3,6 +3,7 @@
 //   1. Recordatorios: los pasos o tareas con "Recordarme" cuya hora ya llegó.
 //   2. Resumen de la mañana (7:00 a. m. Bogotá): lo que tienes para hoy, seguimientos y vencidos.
 //   3. Repaso de la tarde (5:00 p. m. Bogotá): lo que te queda pendiente de hoy.
+//   4. Revisión semanal (viernes 4:00 p. m.): si aún no la has hecho esa semana.
 // Desde la app se puede pedir un aviso de prueba (con la sesión del dueño).
 // Las llaves VAPID viven en la tabla app_secrets, que solo lee esta función.
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -56,7 +57,7 @@ Deno.serve(async (req) => {
   if (!(subs ?? []).length) return Response.json({ sin_suscripciones: true });
 
   const now = new Date(), hoy = hoyBog(), horaBog = bogota().getUTCHours() * 60 + bogota().getUTCMinutes();
-  const res: Record<string, number> = { recordatorios: 0, manana: 0, tarde: 0 };
+  const res: Record<string, number> = { recordatorios: 0, manana: 0, tarde: 0, semanal: 0 };
 
   const { data: progs } = await admin.from("programas").select("id,nombre,nombre_corto,estado");
   const P = new Map((progs ?? []).map((p: { id: string; nombre: string; nombre_corto: string | null; estado: string }) => [p.id, p]));
@@ -111,6 +112,15 @@ Deno.serve(async (req) => {
     const { paraHoy, seguir } = await pendientesHoy();
     const quedan = paraHoy.length + seguir.length;
     if (quedan) res.tarde = await enviar("Antes de cerrar el día", `Te ${quedan === 1 ? "queda" : "quedan"} ${plural(quedan, "pendiente")} de hoy. Márcalos o pásalos a mañana.`, "tarde");
+  }
+
+  // 4. Revisión semanal: viernes a las 4:00 p. m., si la semana aún no está revisada
+  const dow = bogota().getUTCDay();
+  if (dow === 5 && horaBog >= 16 * 60 && horaBog < 20 * 60 && !(await yaEnviado("semanal-" + hoy))) {
+    await admin.from("avisos_log").insert({ clave: "semanal-" + hoy });
+    const lunes = new Date(bogota().getTime() - ((dow + 6) % 7) * 86400_000).toISOString().slice(0, 10);
+    const { data: sem } = await admin.from("semanas").select("revisada_at").eq("lunes", lunes).maybeSingle();
+    if (!sem?.revisada_at) res.semanal = await enviar("Revisión semanal", "15 minutos: cierra lo pendiente, actualiza el estado de tus programas y fija tres objetivos para la próxima semana.", "semanal", "./#/revision");
   }
 
   return Response.json(res);
