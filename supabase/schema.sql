@@ -172,3 +172,13 @@ end $$;
 create trigger solo_dueno_registro before insert on auth.users for each row execute function privado.solo_dueno_registro();
 -- Más una política "as restrictive" por tabla:
 -- using ((select auth.jwt()->>'email') = 'jeferv566@gmail.com')
+
+-- Campos del Cuadro Maestro (hoja BD)
+alter table programas add column if not exists estado_cm text default 'Proyección';
+alter table programas add column if not exists tipo_programa text;
+alter table programas add column if not exists orden_interna text;
+alter table programas add column if not exists plataforma text;
+alter table programas add column if not exists segmento text;
+alter table programas add column if not exists programa_academico text;
+alter table programas add column if not exists ingresos numeric;
+alter table programas add column if not exists porcentaje_aval numeric;

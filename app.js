@@ -13,11 +13,19 @@
   const TIPOS_DOC = ['Propuesta', 'Presupuesto', 'Carta / OC', 'Acta', 'Aval', 'Cronograma', 'Informe', 'Factura', 'Otro'];
   const TIPOS_ENT = ['Farmacéutica', 'Dispositivos médicos', 'IPS / Clínica', 'Sociedad científica', 'Caja de compensación', 'Universidad', 'Entidad pública', 'Otra'];
   const ROLES = ['Decisor', 'Operativo', 'Facturación', 'Académico'];
-  const MONEY = ['valor_total', 'valor_persona', 'valor'];
-  const NUMS = ['horas', 'participantes', 'margen'];
+  const MONEY = ['valor_total', 'valor_persona', 'valor', 'ingresos'];
+  const NUMS = ['horas', 'participantes', 'margen', 'porcentaje_aval'];
   const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
   const LS_KEY = 'rumbo-datos-v1';
-  const BUILD = '20261020225108';
+  // Cuadro Maestro (hoja BD): valores fijos de la línea y listas cerradas
+  const GESTOR = 'Yeferson Vargas González', LINEA = 'Salud y Farma';
+  const ESTADOS_CM = ['Proyección', 'Negociación', 'Iniciado', 'Ejecutado', 'Aplazado', 'Cancelado'];
+  const CM_A_ESTADO = { 'Proyección': 'activo', 'Negociación': 'activo', 'Iniciado': 'activo', 'Ejecutado': 'cerrado', 'Aplazado': 'pausa', 'Cancelado': 'perdido' };
+  const TIPOS_CM = [['1', 'Curso'], ['2', 'Taller'], ['3', 'Diplomado'], ['4', 'Seminario / congreso'], ['5', 'Otro']];
+  const TIPO_CM_LARGO = { 1: 'Cursos y cursos especializados (certificaciones)', 2: 'Talleres', 3: 'Diplomados', 4: 'Seminarios, congresos o simposios', 5: 'Otro' };
+  const PLATAFORMAS = ['Moodle El Bosque', 'Plataforma del cliente', 'Zoom', 'Teams', 'Presencial', 'Otra'];
+  const MESES_CM = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+  const BUILD = '20261020230822';
 
   const S = {
     data: Object.fromEntries(TABLES.map(t => [t, []])),
@@ -199,6 +207,42 @@
     return 'verde';
   }
   const SEM_ORDEN = { rojo: 0, amarillo: 1, verde: 2, gris: 3 };
+
+  // ── Cuadro Maestro: lo que se calcula solo ──
+  const claveRuta = p => rutaDe(p)?.clave || 'cerrado';
+  const esAbierta = p => claveRuta(p) === 'abierta';
+  const esAval = p => claveRuta(p) === 'aval';
+  const tipoLabel = p => (TIPOS_CM.find(t => t[0] === String(p.tipo_programa)) || [])[1] || '';
+  function ingresosCM(p) {
+    if (p.ingresos !== null && p.ingresos !== undefined && p.ingresos !== '') return Number(p.ingresos);
+    if (esAval(p)) return p.valor_total ? Math.round(Number(p.valor_total) * (Number(p.porcentaje_aval ?? 15) || 15) / 100) : 0;
+    if (esAbierta(p)) return (Number(p.valor_persona) || 0) * (Number(p.participantes) || 0);
+    return Number(p.valor_total) || 0;
+  }
+  const facturadoCM = p => S.data.facturacion.filter(f => f.programa_id === p.id && f.estado_pago !== 'pendiente').reduce((a, f) => a + (Number(f.valor) || 0), 0);
+  const trimestreCM = p => p.fecha_inicio ? 'T' + (Math.floor((parse(p.fecha_inicio).getMonth()) / 3) + 1) : '';
+  // Campos que el Cuadro Maestro necesita y que solo tú puedes poner (en orden de cuándo suelen conocerse)
+  function faltantesCM(p) {
+    const f = [];
+    if (!esAbierta(p) && !p.entidad_id) f.push('Empresa');
+    if (!p.tipo_programa) f.push('Tipo de programa');
+    if (!p.facultad) f.push('Facultad');
+    if (!p.modalidad) f.push('Modalidad');
+    if (!p.horas) f.push('Intensidad horaria');
+    if (esAbierta(p) ? !p.valor_persona : !p.valor_total) f.push(esAbierta(p) ? 'Valor por persona' : 'Valor del programa');
+    if (!esAbierta(p) && !p.participantes) f.push('Matriculados');
+    if (!p.fecha_inicio) f.push('Fecha de inicio');
+    if (!p.fecha_fin) f.push('Fecha de fin');
+    if (!p.director) f.push('Director');
+    if (!p.plataforma) f.push('Plataforma');
+    if (['Iniciado', 'Ejecutado'].includes(p.estado_cm) && !p.orden_interna) f.push('Orden interna');
+    return f;
+  }
+  const TOTAL_CM = p => 11 + (['Iniciado', 'Ejecutado'].includes(p.estado_cm) ? 1 : 0) - (esAbierta(p) ? 2 : 0);
+  function entidadPorNombre(nombre) {
+    const n = (nombre || '').trim().toLowerCase();
+    return n ? S.data.entidades.find(e => e.nombre.trim().toLowerCase() === n) : null;
+  }
 
   function calcFecha(p, ref, rel) {
     if (!ref || rel === null || rel === undefined) return null;
@@ -393,7 +437,7 @@
   const COL_RUTA = { cerrado: 'var(--c1)', aval: 'var(--c2)', abierta: 'var(--c3)' };
   function chartRutas(activos) {
     const rutas = [...S.data.rutas].sort((a, b) => a.orden - b.orden);
-    const filas = rutas.map(r => ({ r, n: activos.filter(p => p.ruta_id === r.id).length, v: activos.filter(p => p.ruta_id === r.id).reduce((s, p) => s + (Number(p.valor_total) || 0), 0) })).filter(f => f.n);
+    const filas = rutas.map(r => ({ r, n: activos.filter(p => p.ruta_id === r.id).length, v: activos.filter(p => p.ruta_id === r.id).reduce((s, p) => s + ingresosCM(p), 0) })).filter(f => f.n);
     const tot = filas.reduce((s, f) => s + f.n, 0);
     if (!tot) return '';
     const R = 42, C = 2 * Math.PI * R, gap = filas.length > 1 ? 2.5 : 0;
@@ -404,7 +448,7 @@
       acc += len; return s;
     }).join('');
     return `<div class="card pad">
-      <h2>Portafolio por ruta</h2><p class="small muted" style="margin:4px 0 12px">Programas activos y su valor.</p>
+      <h2>Portafolio por ruta</h2><p class="small muted" style="margin:4px 0 12px">Programas activos y sus ingresos.</p>
       <div class="donut-row">
         <svg viewBox="0 0 110 110" width="110" height="110" role="img" aria-label="Programas activos por ruta">${arcs}
           <text x="55" y="53" text-anchor="middle" class="dn-n">${tot}</text><text x="55" y="68" text-anchor="middle" class="dn-l">activos</text></svg>
@@ -489,7 +533,8 @@
     activos.forEach(p => { const a = avance(p); hechos += a.d; total += a.n; });
     const pct = total ? Math.round(hechos * 100 / total) : 0;
     const alDia = activos.filter(p => semaforo(p) === 'verde').length;
-    const cartera = activos.reduce((s, p) => s + (Number(p.valor_total) || 0), 0);
+    const cartera = activos.reduce((s, p) => s + ingresosCM(p), 0);
+    const incompletos = activos.filter(p => faltantesCM(p).length);
     const margenes = activos.filter(p => p.margen !== null && p.margen !== undefined && p.margen !== '');
     const margen = margenes.length ? Math.round(margenes.reduce((s, p) => s + Number(p.margen), 0) / margenes.length) : null;
     const inicios = activos.filter(p => p.fecha_inicio && p.fecha_inicio >= t && p.fecha_inicio <= t30).sort(byDate('fecha_inicio'));
@@ -513,8 +558,12 @@
           ${kpi(ICON.wait, seguir.length ? 'amber' : 'green', seguir.length, 'Por hacer seguimiento')}
           ${kpi(ICON.clock, 'blue', semana.length, 'Vencen en 7 días', 'nav-calendario')}
         </div>
-        ${cartera ? `<div class="card money-card"><span class="kpi-ic violet">${ICON.money}</span><div class="grow"><span class="muted small">Cartera activa</span><b>${money(cartera)}</b></div>
+        ${cartera ? `<div class="card money-card"><span class="kpi-ic violet">${ICON.money}</span><div class="grow"><span class="muted small">Ingresos en cartera</span><b>${money(cartera)}</b></div>
           ${margen !== null ? `<div class="mg"><span class="muted small">Margen promedio</span><b>${margen} %</b></div>` : ''}</div>` : ''}
+        <div class="card money-card cm-dash" data-act="${incompletos.length ? 'open' : 'export-csv'}" data-id="${incompletos[0]?.id || ''}" role="button">
+          <span class="kpi-ic ${incompletos.length ? 'amber' : 'green'}">${ICON.tpl}</span>
+          <div class="grow"><span class="muted small">Cuadro Maestro</span><b style="font-size:16px">${incompletos.length ? `${plural(incompletos.length, 'programa')} con datos por completar` : 'Todo listo para exportar'}</b></div>
+          <span class="muted">${ICON.next}</span></div>
         <div class="quick">
           ${qa(ICON.plus, 'Nuevo programa', 'nuevo')}${qa(ICON.note, 'Captura', 'captura')}${qa(ICON.cal, 'Calendario', 'nav', ' data-to="calendario"')}${qa(ICON.download, 'Exportar', 'export-csv')}
         </div>
@@ -621,13 +670,14 @@
           <div class="small muted ellipsis">${esc(entidadDe(p)?.nombre || 'Sin entidad')}</div>
           <div class="row wrap" style="margin-top:6px;gap:6px">
             <span class="pill route" style="--rc:${COL_RUTA[r?.clave] || 'var(--ink-3)'}">${esc(r?.nombre || '')}</span>
-            ${p.estado !== 'activo' ? `<span class="pill">${ESTADOS_PROG[p.estado]}</span>` : SEM_TXT[sem] ? `<span class="pill ${SEM_PILL[sem]}">${SEM_TXT[sem]}</span>` : ''}
+            <span class="pill">${esc(p.estado_cm || 'Proyección')}</span>
+            ${p.estado === 'activo' && SEM_TXT[sem] ? `<span class="pill ${SEM_PILL[sem]}">${SEM_TXT[sem]}</span>` : ''}
           </div></div>
       </div>
       <div class="pc-foot">
         <div><span>Fase</span><b>${esc(fa)}</b></div>
         <div><span>Inicio</span><b>${p.fecha_inicio ? fmtDate(p.fecha_inicio) : '—'}</b></div>
-        <div><span>Valor</span><b>${p.valor_total ? moneyCorto(p.valor_total) : '—'}</b></div>
+        <div><span>Ingresos</span><b>${ingresosCM(p) ? moneyCorto(ingresosCM(p)) : '—'}</b></div>
       </div>
       ${nx ? `<div class="pc-next"><span class="muted">Siguiente:</span> <span class="ellipsis grow">${esc(nx.titulo)}</span>${fx ? `<span class="pill ${fx < t ? 'red' : fx <= addDays(t, 3) ? 'amber' : ''}">${relDate(fx)}</span>` : ''}</div>` : ''}
     </div>`;
@@ -635,7 +685,7 @@
   function listaProgramas() {
     const ps = programasFiltrados();
     if (!ps.length) return '<div class="card empty">No hay programas con estos filtros.</div>';
-    const total = ps.reduce((s, p) => s + (Number(p.valor_total) || 0), 0);
+    const total = ps.reduce((s, p) => s + ingresosCM(p), 0);
     return `<p class="small muted">${plural(ps.length, 'programa')}${total ? ` · ${money(total)}` : ''}</p><div class="grid">${ps.map(programCard).join('')}</div>`;
   }
   function viewProgramas() {
@@ -647,7 +697,7 @@
         <input class="input search" type="search" placeholder="Buscar programa, entidad, facultad…" value="${esc(S.f.q)}" data-input="buscar">
         <select class="input" data-change="f-ruta">${opts(S.data.rutas.map(r => [r.id, r.nombre]), S.f.ruta, 'Todas las rutas')}</select>
       </div>
-      <div class="chips">${chip('activo', 'Activos')}${chip('pausa', 'En pausa')}${chip('cerrado', 'Cerrados')}${chip('perdido', 'Perdidos')}${chip('todos', 'Todos')}</div>
+      <div class="chips">${chip('activo', 'En curso')}${chip('cerrado', 'Ejecutados')}${chip('pausa', 'Aplazados')}${chip('perdido', 'Cancelados')}${chip('todos', 'Todos')}</div>
       <div id="prog-list" class="section">${listaProgramas()}</div>`;
   }
 
@@ -665,12 +715,32 @@
       </div>
       <div class="card list section">
         ${row(ICON.tpl, 'Plantillas', 'nav', ' data-to="plantillas"', 'Rutas y módulos con los que nace cada programa')}
-        ${row(ICON.download, 'Exportar programas', 'export-csv', '', 'CSV para el Cuadro Maestro')}
+        ${row(ICON.download, 'Exportar al Cuadro Maestro', 'export-csv', '', 'CSV con las columnas de la hoja BD, listo para pegar')}
         ${row(ICON.download, 'Descargar respaldo', 'export-json', '', 'Copia completa en JSON')}
         <label class="li menu-li"><span class="kpi-ic violet">${ICON.upload}</span><div class="grow"><div class="title">Importar respaldo</div><div class="sub">Desde un archivo JSON</div></div><input type="file" accept="application/json,.json" data-change="import" hidden></label>
       </div>
       ${S.mode === 'remote' ? `<button class="btn danger section" style="width:100%" data-act="logout">${ICON.out}<span>Cerrar sesión</span></button>` : ''}
       <p class="tiny muted" style="text-align:center;margin-top:16px">Versión ${esc(BUILD)}</p>`;
+  }
+
+  // Tarjeta con los datos del Cuadro Maestro: qué está y qué falta
+  function cardCM(p) {
+    const falt = faltantesCM(p), tot = TOTAL_CM(p), ok = Math.max(0, tot - falt.length), pct = Math.round(ok * 100 / tot);
+    const fact = (l, v) => `<div class="fact"><span>${l}</span><b>${v || v === 0 ? esc(v) : '<em class="muted">Falta</em>'}</b></div>`;
+    const fechas = p.fecha_inicio ? `${fmtDate(p.fecha_inicio)}${p.fecha_fin ? ' a ' + fmtDate(p.fecha_fin) : ''}` : '';
+    return `<div class="card pad cm section">
+      <div class="row between"><div><h2>Cuadro Maestro</h2><p class="small muted" style="margin:2px 0 0">${falt.length ? `${ok} de ${tot} datos listos` : 'Datos completos'}</p></div>
+        <button class="btn sm" data-act="edit-cm" data-id="${p.id}">${ICON.edit}<span>${falt.length ? 'Completar' : 'Editar'}</span></button></div>
+      <div class="bar" style="margin:10px 0 4px"><i style="width:${pct}%"></i></div>
+      ${falt.length ? `<div class="miss" data-act="edit-cm" data-id="${p.id}" role="button">${falt.map(x => `<span>${esc(x)}</span>`).join('')}</div>` : ''}
+      <div class="facts">
+        ${fact('Tipo', esAbierta(p) ? 'ABIERTO' : 'CERRADO')}${fact('Tipo de programa', tipoLabel(p))}${fact('Empresa', esAbierta(p) ? 'Oferta abierta' : entidadDe(p)?.nombre)}
+        ${fact('Fechas', fechas)}${fact('Trimestre', trimestreCM(p))}${fact('Facultad', p.facultad)}${fact('Modalidad', p.modalidad)}${fact('Plataforma', p.plataforma)}
+        ${fact('Intensidad horaria', p.horas ? p.horas + ' h' : '')}${fact('Director', p.director)}${fact('Matriculados', p.participantes)}
+        ${fact(esAbierta(p) ? 'Valor por persona' : 'Valor programa', money(esAbierta(p) ? p.valor_persona : p.valor_total))}
+        ${fact('Ingresos', money(ingresosCM(p)))}${fact('Facturado', money(facturadoCM(p)) || '$ 0')}${fact('Orden interna', p.orden_interna)}
+        ${p.margen !== null && p.margen !== undefined && p.margen !== '' ? fact('Margen', p.margen + ' %') : ''}
+      </div></div>`;
   }
 
   // ───────────── Ficha de programa ─────────────
@@ -695,7 +765,7 @@
     const sem = semaforo(p);
     return `
       <div class="page-head"><button class="btn ghost back" data-act="nav" data-to="programas">${ICON.back}<span>Programas</span></button>
-        <div class="row"><select class="input" style="width:auto" data-change="prog-estado" data-id="${p.id}">${opts(Object.entries(ESTADOS_PROG), p.estado)}</select>
+        <div class="row"><select class="input" style="width:auto" data-change="prog-estado" data-id="${p.id}" aria-label="Estado en el Cuadro Maestro">${opts(ESTADOS_CM, p.estado_cm || 'Proyección')}</select>
         <button class="icon-btn" data-act="edit-prog" data-id="${p.id}" aria-label="Editar programa">${ICON.edit}</button></div></div>
       <div class="card phead">
         <div class="row" style="align-items:center;gap:14px">
@@ -712,14 +782,9 @@
           <div><b>${dIni === null ? '—' : dIni > 0 ? dIni : dIni === 0 ? 'Hoy' : 'En curso'}</b><span>${dIni !== null && dIni > 0 ? 'Días al inicio' : 'Inicio'}</span></div>
         </div>
         <div class="stepper">${fs.map((f, i) => `<div class="step ${f === fa ? 'now' : (ia === -1 || i < ia) ? 'done' : ''}"><i></i>${esc(f)}</div>`).join('')}</div>
-        <div class="facts">
-          ${fact('Tipo', p.tipo)}${fact('Facultad', p.facultad)}${fact('Director', p.director)}${fact('Modalidad', p.modalidad)}
-          ${fact('Horas', p.horas)}${fact('Participantes', p.participantes)}${fact('Valor total', money(p.valor_total))}
-          ${fact('Valor por persona', money(p.valor_persona))}${fact('Margen', p.margen !== null && p.margen !== undefined ? p.margen + ' %' : '')}
-          ${fact('Inicio', fmtDate(p.fecha_inicio))}${fact('Fin', fmtDate(p.fecha_fin))}
-        </div>
-        ${p.notas ? `<p class="small muted" style="white-space:pre-wrap;margin-bottom:0">${esc(p.notas)}</p>` : ''}
+        ${p.notas ? `<p class="small muted" style="white-space:pre-wrap;margin:12px 0 0">${esc(p.notas)}</p>` : ''}
       </div>
+      ${cardCM(p)}
       <div class="tabs">${tb('checklist', `Checklist <span>${abiertos.length}</span>`)}${tb('bitacora', 'Bitácora')}${tb('documentos', 'Documentos')}${tb('contactos', 'Contactos')}${tb('dinero', 'Facturación')}</div>
       ${content}`;
   }
@@ -963,7 +1028,7 @@
   const sheetHead = t => `<div class="sheet-head"><h2>${esc(t)}</h2><button type="button" class="icon-btn" data-act="close" aria-label="Cerrar">${ICON.close}</button></div>`;
   const fld = (label, inner, show) => `<div class="field"${show ? ` data-show="${show}"` : ''}><label>${label}</label>${inner}</div>`;
   const inp = (name, val, attrs = '') => `<input class="input" name="${name}" value="${esc(val ?? '')}" ${attrs}>`;
-  const seg = (name, list, val) => `<input type="hidden" name="${name}" value="${esc(val)}"><div class="seg">${list.map(([v, l]) =>
+  const seg = (name, list, val) => `<input type="hidden" name="${name}" value="${esc(val)}"><div class="seg${list.length > 3 ? ' pills-seg' : ''}">${list.map(([v, l]) =>
     `<button type="button" class="${v === val ? 'on' : ''}" data-act="seg" data-name="${name}" data-v="${v}">${l}</button>`).join('')}</div>`;
   function applyShow(form, val) {
     form.querySelectorAll('[data-show]').forEach(el => { el.hidden = !el.dataset.show.split(' ').includes(val); });
@@ -974,29 +1039,64 @@
     const rutas = [...S.data.rutas].sort((a, b) => a.orden - b.orden);
     const mods = [...S.data.modulos].sort((a, b) => a.orden - b.orden);
     const ents = [...S.data.entidades].sort((a, b) => a.nombre.localeCompare(b.nombre));
-    modal(`<form data-form="programa" data-id="${p.id || ''}">
-      ${sheetHead(nuevo ? 'Nuevo programa' : 'Editar programa')}
-      ${fld('Nombre del programa', inp('nombre', p.nombre, 'required autofocus placeholder="Ej.: Curso Accesos Vasculares Seguros"'))}
-      <div class="two">${fld('Nombre corto', inp('nombre_corto', p.nombre_corto, 'placeholder="Ej.: Solventum AV"'))}
-        ${fld('Tipo', `<select class="input" name="tipo">${opts(TIPOS, p.tipo, 'Elegir…')}</select>`)}</div>
-      ${fld('Entidad', `<select class="input" name="entidad_id">${opts(ents.map(e => [e.id, e.nombre]), p.entidad_id, 'Sin entidad / nueva abajo')}</select>
-        <div class="two" style="margin-top:6px">${inp('nueva_entidad', '', 'placeholder="Entidad nueva"')}<select class="input" name="tipo_entidad">${opts(TIPOS_ENT, '', 'Tipo de entidad')}</select></div>`)}
-      ${nuevo ? fld('Ruta base', `<div class="choice">${rutas.map((r, i) => `<label><input type="radio" name="ruta_id" value="${r.id}" ${i === 0 ? 'checked' : ''}><div><b>${esc(r.nombre)}</b><div class="small muted">${esc(r.descripcion || '')}</div></div></label>`).join('')}</div>`)
-        : `<p class="small muted">Ruta: <b>${esc(rutaDe(p)?.nombre || '')}</b> (no se puede cambiar).</p>`}
-      ${fld('Módulos', `<div class="choice">${mods.map(m => `<label><input type="checkbox" name="modulos" value="${m.id}" ${(p.modulos || []).includes(m.id) ? 'checked' : ''}><div><b>${esc(m.nombre)}</b><div class="small muted">${esc(m.descripcion || '')}</div></div></label>`).join('')}</div>`)}
+    const rClave = nuevo ? 'cerrado' : claveRuta(p);
+    const dl = `<datalist id="dl-ent">${ents.map(e => `<option value="${esc(e.nombre)}">`).join('')}</datalist>`;
+    const empresa = fld('Empresa', inp('empresa', entidadDe(p)?.nombre || '', 'list="dl-ent" autocomplete="off" placeholder="Ej.: Solventum"'), 'cerrado aval');
+    const tipo = fld('Tipo de programa', seg('tipo_programa', TIPOS_CM, String(p.tipo_programa || '1')));
+    const modulos = `<details class="more"${nuevo ? '' : ' open'}><summary>Módulos <span class="muted small">(opcional)</span></summary>
+      <div class="choice" style="margin-top:8px">${mods.map(m => `<label><input type="checkbox" name="modulos" value="${m.id}" ${(p.modulos || []).includes(m.id) ? 'checked' : ''}><div><b>${esc(m.nombre)}</b><div class="small muted">${esc(m.descripcion || '')}</div></div></label>`).join('')}</div></details>`;
+    if (nuevo) {
+      modal(`<form data-form="programa" data-id="">
+        ${sheetHead('Nuevo programa')}
+        ${fld('Nombre del programa', inp('nombre', '', 'required autofocus placeholder="Ej.: Curso Accesos Vasculares Seguros"'))}
+        ${fld('Ruta', `<input type="hidden" name="ruta_id" value="${rutas.find(r => r.clave === 'cerrado')?.id || rutas[0]?.id || ''}">
+          <div class="seg" data-seg-ruta>${rutas.map(r => `<button type="button" class="${r.clave === 'cerrado' ? 'on' : ''}" data-act="seg-ruta" data-id="${r.id}" data-clave="${r.clave}">${esc(r.nombre)}</button>`).join('')}</div>`)}
+        ${empresa}${dl}
+        ${tipo}
+        ${fld('Fecha de inicio <span class="muted">(opcional)</span>', inp('fecha_inicio', '', 'type="date"'))}
+        ${modulos}
+        <p class="tiny muted">Lo demás del Cuadro Maestro lo completas cuando lo tengas; la ficha del programa te muestra qué falta.</p>
+        <div class="sheet-actions"><button type="button" class="btn" data-act="close">Cancelar</button><button class="btn primary">Crear programa</button></div>
+      </form>`);
+      applyShow($('#modal-root form'), rClave);
+      return;
+    }
+    const valorLbl = esAbierta(p) ? 'Valor por persona (COP)' : esAval(p) ? 'Valor total del programa del aliado (COP)' : 'Valor del programa (COP)';
+    modal(`<form data-form="programa" data-id="${p.id}">
+      ${sheetHead('Datos del Cuadro Maestro')}
+      <p class="small muted" style="margin-top:-6px">Ruta: <b>${esc(rutaDe(p)?.nombre || '')}</b> · Tipo <b>${esAbierta(p) ? 'ABIERTO' : 'CERRADO'}</b> · Gestor y línea se ponen solos.</p>
+      <h4 class="fsec">General</h4>
+      ${fld('Nombre del programa', inp('nombre', p.nombre, 'required'))}
+      <div class="two">${fld('Nombre corto', inp('nombre_corto', p.nombre_corto, 'placeholder="Para listas"'))}
+        ${fld('Estado', `<select class="input" name="estado_cm">${opts(ESTADOS_CM, p.estado_cm || 'Proyección')}</select>`)}</div>
+      ${empresa}${dl}
+      ${tipo}
+      <h4 class="fsec">Fechas</h4>
+      <div class="two">${fld('Inicio', inp('fecha_inicio', p.fecha_inicio, 'type="date"'))}${fld('Fin', inp('fecha_fin', p.fecha_fin, 'type="date"'))}</div>
+      <h4 class="fsec">Académico</h4>
       <div class="two">${fld('Facultad', `<select class="input" name="facultad">${opts(FACULTADES, p.facultad, 'Elegir…')}</select>`)}
         ${fld('Modalidad', `<select class="input" name="modalidad">${opts(MODALIDADES, p.modalidad, 'Elegir…')}</select>`)}</div>
-      <div class="two">${fld('Fecha de inicio', inp('fecha_inicio', p.fecha_inicio, 'type="date"'))}${fld('Fecha de fin', inp('fecha_fin', p.fecha_fin, 'type="date"'))}</div>
-      <div class="two">${fld('Participantes', inp('participantes', p.participantes, 'type="number" min="0" inputmode="numeric"'))}${fld('Valor total (COP)', inp('valor_total', p.valor_total, 'inputmode="numeric" placeholder="18000000"'))}</div>
-      ${nuevo ? '<p class="tiny muted">Con la fecha de inicio la app calcula las fechas límite de los pasos. Si aún no la tienes, agrégala después y usa “Recalcular fechas”.</p>' : `
-      <div class="two">${fld('Director académico', inp('director', p.director))}${fld('Horas', inp('horas', p.horas, 'type="number" min="0" step="any"'))}</div>
-      <div class="two">${fld('Valor por persona', inp('valor_persona', p.valor_persona, 'inputmode="numeric"'))}${fld('Margen de contribución (%)', inp('margen', p.margen, 'type="number" step="any"'))}</div>
-      ${fld('Prioridad', `<select class="input" name="prioridad">${opts([['alta', 'Alta'], ['media', 'Media'], ['baja', 'Baja']], p.prioridad || 'media')}</select>`)}
-      ${fld('Notas', `<textarea class="input" name="notas" rows="3">${esc(p.notas || '')}</textarea>`)}`}
+      <div class="two">${fld('Intensidad horaria', inp('horas', p.horas, 'type="number" min="0" step="any" inputmode="decimal"'))}
+        ${fld('Plataforma', `<select class="input" name="plataforma">${opts(PLATAFORMAS.includes(p.plataforma) || !p.plataforma ? PLATAFORMAS : [...PLATAFORMAS, p.plataforma], p.plataforma, 'Elegir…')}</select>`)}</div>
+      ${fld('Nombre del director', inp('director', p.director))}
+      ${fld('Programa académico <span class="muted">(opcional)</span>', inp('programa_academico', p.programa_academico, 'placeholder="Ej.: Especialización en Enfermería Oncológica"'))}
+      <h4 class="fsec">Comercial</h4>
+      <div class="two">${fld('Matriculados', inp('participantes', p.participantes, 'type="number" min="0" inputmode="numeric"'))}
+        ${fld(valorLbl, inp(esAbierta(p) ? 'valor_persona' : 'valor_total', esAbierta(p) ? p.valor_persona : p.valor_total, 'inputmode="numeric"'))}</div>
+      ${esAval(p) ? fld('% del aval para la universidad', inp('porcentaje_aval', p.porcentaje_aval ?? 15, 'type="number" min="0" max="100" step="any"')) : ''}
+      <p class="small calc">Ingresos para el Cuadro Maestro: <b data-ingresos>${money(ingresosCM(p)) || '$ 0'}</b>
+        <span class="muted tiny">${esAval(p) ? '(valor × % del aval)' : esAbierta(p) ? '(valor por persona × matriculados)' : '(valor del programa)'}</span></p>
+      <div class="two">${fld('Orden interna', inp('orden_interna', p.orden_interna))}${fld('Margen de contribución (%)', inp('margen', p.margen, 'type="number" step="any"'))}</div>
+      ${fld('Segmento <span class="muted">(opcional)</span>', inp('segmento', p.segmento))}
+      ${fld('Ingresos, solo si difieren del cálculo <span class="muted">(opcional)</span>', inp('ingresos', p.ingresos, 'inputmode="numeric" placeholder="Déjalo vacío para usar el cálculo"'))}
+      <h4 class="fsec">Seguimiento</h4>
+      ${modulos}
+      ${fld('Notas', `<textarea class="input" name="notas" rows="3">${esc(p.notas || '')}</textarea>`)}
       <div class="sheet-actions">
-        ${nuevo ? '' : `<button type="button" class="btn danger left" data-act="del-prog" data-id="${p.id}">Eliminar</button>`}
-        <button type="button" class="btn" data-act="close">Cancelar</button><button class="btn primary">${nuevo ? 'Crear programa' : 'Guardar'}</button>
+        <button type="button" class="btn danger left" data-act="del-prog" data-id="${p.id}">Eliminar</button>
+        <button type="button" class="btn" data-act="close">Cancelar</button><button class="btn primary">Guardar</button>
       </div></form>`);
+    applyShow($('#modal-root form'), rClave);
   }
 
   function formItem(i) {
@@ -1072,7 +1172,7 @@
         <button type="button" class="btn" data-act="close">Cancelar</button><button class="btn primary">Guardar</button></div></form>`);
   }
   function formPerdido(p) {
-    modal(`<form data-form="perdido" data-id="${p.id}">${sheetHead('Programa perdido')}
+    modal(`<form data-form="perdido" data-id="${p.id}">${sheetHead('Programa cancelado')}
       ${fld('¿Por qué no se cerró?', `<textarea class="input" name="motivo_perdida" rows="3" required autofocus placeholder="Ej.: Precio por encima del presupuesto del cliente">${esc(p.motivo_perdida || '')}</textarea>`)}
       <div class="sheet-actions"><button type="button" class="btn" data-act="close">Cancelar</button><button class="btn primary">Guardar</button></div></form>`);
   }
@@ -1090,11 +1190,18 @@
 
   // ───────────── Exportar / importar ─────────────
   function exportCSV() {
-    const cols = ['Programa', 'Nombre corto', 'Entidad', 'Ruta', 'Tipo', 'Facultad', 'Director', 'Modalidad', 'Horas', 'Participantes', 'Valor total', 'Valor por persona', 'Margen %', 'Fecha inicio', 'Fecha fin', 'Estado', 'Fase actual', 'Avance %'];
-    const rows = S.data.programas.map(p => [p.nombre, p.nombre_corto, entidadDe(p)?.nombre, rutaDe(p)?.nombre, p.tipo, p.facultad, p.director, p.modalidad, p.horas, p.participantes,
-      p.valor_total, p.valor_persona, p.margen, p.fecha_inicio, p.fecha_fin, ESTADOS_PROG[p.estado], faseActual(p), avance(p).pct]);
-    const cell = v => { const s = String(v ?? ''); return /[;"\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
-    download(`rumbo-programas-${today()}.csv`, '﻿' + [cols, ...rows].map(r => r.map(cell).join(';')).join('\r\n'), 'text/csv;charset=utf-8');
+    // Mismas columnas de la hoja BD del Cuadro Maestro, en ese orden, para pegar directo.
+    const cols = ['Gestor', 'Línea de negocio', 'Tipo', 'Mes', 'Día', 'Mes', 'Día', 'Orden interna', 'Nombre del programa', 'Empresa', 'Estado',
+      'Matriculados', 'Intensidad horaria', 'Valor programa', 'Ingresos', 'Facturado', 'Facultad UEB', 'Programa', 'Nombre del director', 'Modalidad',
+      'Plataforma', 'Tipo programa', 'Segmento', 'Trimestre'];
+    const mes = d => d ? MESES_CM[parse(d).getMonth()] : '', dia = d => d ? parse(d).getDate() : '';
+    const rows = S.data.programas.map(p => [GESTOR, LINEA, esAbierta(p) ? 'ABIERTO' : 'CERRADO', mes(p.fecha_inicio), dia(p.fecha_inicio), mes(p.fecha_fin), dia(p.fecha_fin),
+      p.orden_interna, p.nombre, esAbierta(p) ? 'OFERTA ABIERTA' : (entidadDe(p)?.nombre || ''), p.estado_cm || 'Proyección',
+      p.participantes, p.horas, esAbierta(p) ? p.valor_persona : p.valor_total, ingresosCM(p) || '', facturadoCM(p) || '', p.facultad, p.programa_academico,
+      p.director, p.modalidad, p.plataforma, p.tipo_programa, p.segmento, trimestreCM(p)]);
+    const cell = v => { const x = String(v ?? ''); return /[;"\n\r]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x; };
+    download(`cuadro-maestro-${today()}.csv`, '\ufeff' + [cols, ...rows].map(r => r.map(cell).join(';')).join('\r\n'), 'text/csv;charset=utf-8');
+    toast('CSV con las columnas del Cuadro Maestro');
   }
   async function importJSON(file) {
     const data = JSON.parse(await file.text());
@@ -1151,8 +1258,15 @@
       const form = el.closest('form');
       form.querySelector(`input[name="${el.dataset.name}"]`).value = el.dataset.v;
       el.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === el));
-      applyShow(form, el.dataset.v);
+      if (['estado', 'tipo'].includes(el.dataset.name)) applyShow(form, el.dataset.v);
     },
+    'seg-ruta'(el) {
+      const form = el.closest('form');
+      form.querySelector('input[name="ruta_id"]').value = el.dataset.id;
+      el.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === el));
+      applyShow(form, el.dataset.clave);
+    },
+    'edit-cm': el => formPrograma(byId('programas', el.dataset.id)),
     'edit-item': el => { const i = byId('items', el.dataset.id); if (i) formItem(i); },
     'edit-prog': el => formPrograma(byId('programas', el.dataset.id)),
     'edit-ent': el => formEntidad(byId('entidades', el.dataset.id)),
@@ -1227,37 +1341,47 @@
     },
     async programa(d, f) {
       const id = f.dataset.id, mods = new FormData(f).getAll('modulos');
-      let entidad_id = d.entidad_id || null;
-      if (d.nueva_entidad && d.nueva_entidad.trim()) {
-        const e = await db.insert('entidades', clean({ nombre: d.nueva_entidad, tipo: d.tipo_entidad }));
-        entidad_id = e.id;
+      const ruta = byId('rutas', id ? byId('programas', id).ruta_id : d.ruta_id);
+      const abierta = ruta?.clave === 'abierta';
+      // Empresa: se busca por nombre; si no existe se crea. En oferta abierta no aplica.
+      let entidad_id = null;
+      if (!abierta && d.empresa && d.empresa.trim()) {
+        entidad_id = (entidadPorNombre(d.empresa) || await db.insert('entidades', clean({ nombre: d.empresa.trim() }))).id;
       }
-      const row = clean({
-        nombre: d.nombre, nombre_corto: d.nombre_corto, tipo: d.tipo, facultad: d.facultad, modalidad: d.modalidad,
-        fecha_inicio: d.fecha_inicio, fecha_fin: d.fecha_fin, participantes: d.participantes, valor_total: d.valor_total,
-        director: d.director, horas: d.horas, valor_persona: d.valor_persona, margen: d.margen, prioridad: d.prioridad, notas: d.notas,
-      });
-      row.entidad_id = entidad_id; row.modulos = mods; row.actualizado = nowIso();
-      if (row.valor_total && row.participantes && !row.valor_persona) row.valor_persona = Math.round(row.valor_total / row.participantes);
       if (!id) {
         if (!d.ruta_id) { toast('Elige una ruta'); return; }
-        Object.assign(row, { ruta_id: d.ruta_id, estado: 'activo', prioridad: row.prioridad || 'media' });
+        if (!abierta && !entidad_id) { toast('Escribe la empresa'); f.empresa?.focus(); return; }
+        const row = clean({ nombre: d.nombre, tipo_programa: d.tipo_programa, fecha_inicio: d.fecha_inicio });
+        Object.assign(row, { ruta_id: d.ruta_id, entidad_id, modulos: mods, estado: 'activo', estado_cm: 'Proyección', prioridad: 'media', actualizado: nowIso() });
         const p = await db.insert('programas', row);
         await db.insert('items', generarItems(p, mods, true));
         await db.insert('bitacora', { programa_id: p.id, fecha: today(), tipo: 'Nota', resumen: 'Programa creado en Rumbo.', proxima_accion: null });
         closeModal(); go('programa', p.id); toast('Programa creado');
-      } else {
-        const p = byId('programas', id);
-        const antes = { ini: p.fecha_inicio, fin: p.fecha_fin, mods: p.modulos || [] };
-        await db.update('programas', id, row);
-        const nuevos = mods.filter(m => !antes.mods.includes(m));
-        if (nuevos.length) await db.insert('items', generarItems(p, nuevos, false));
-        let n = 0;
-        if ((antes.ini !== p.fecha_inicio || antes.fin !== p.fecha_fin) && itemsDe(id).some(i => abierto(i) && i.dias_ref) &&
-            confirm('Cambiaron las fechas del programa. ¿Recalcular las fechas límite de los pasos pendientes?')) n = await recalcular(p);
-        closeModal(); render();
-        toast(nuevos.length ? `Guardado. Se agregaron los pasos de ${nuevos.length} módulo(s)` : n ? `Guardado. ${n} fechas recalculadas` : 'Guardado');
+        return;
       }
+      const p = byId('programas', id);
+      const row = clean({
+        nombre: d.nombre, nombre_corto: d.nombre_corto, estado_cm: d.estado_cm, tipo_programa: d.tipo_programa, fecha_inicio: d.fecha_inicio, fecha_fin: d.fecha_fin,
+        facultad: d.facultad, modalidad: d.modalidad, horas: d.horas, plataforma: d.plataforma, director: d.director, programa_academico: d.programa_academico,
+        participantes: d.participantes, valor_total: d.valor_total, valor_persona: d.valor_persona, porcentaje_aval: d.porcentaje_aval,
+        orden_interna: d.orden_interna, margen: d.margen, segmento: d.segmento, ingresos: d.ingresos, notas: d.notas,
+      });
+      if (!abierta) row.entidad_id = entidad_id;
+      row.modulos = mods; row.actualizado = nowIso();
+      if (row.estado_cm) row.estado = CM_A_ESTADO[row.estado_cm] || 'activo';
+      if (!abierta && row.valor_total && row.participantes) row.valor_persona = Math.round(row.valor_total / row.participantes);
+      if (abierta && row.valor_persona && row.participantes) row.valor_total = row.valor_persona * row.participantes;
+      const antes = { ini: p.fecha_inicio, fin: p.fecha_fin, mods: p.modulos || [], cm: p.estado_cm };
+      await db.update('programas', id, row);
+      const nuevos = mods.filter(m => !antes.mods.includes(m));
+      if (nuevos.length) await db.insert('items', generarItems(p, nuevos, false));
+      if (antes.cm !== p.estado_cm) await db.insert('bitacora', { programa_id: id, fecha: today(), tipo: 'Decisión', resumen: `Estado en el Cuadro Maestro: ${antes.cm || 'Proyección'} → ${p.estado_cm}.`, proxima_accion: null });
+      let n = 0;
+      if ((antes.ini !== p.fecha_inicio || antes.fin !== p.fecha_fin) && itemsDe(id).some(i => abierto(i) && i.dias_ref) &&
+          confirm('Cambiaron las fechas del programa. ¿Recalcular las fechas límite de los pasos pendientes?')) n = await recalcular(p);
+      closeModal(); render();
+      if (p.estado_cm === 'Cancelado' && antes.cm !== 'Cancelado' && !p.motivo_perdida) return formPerdido(p);
+      toast(nuevos.length ? `Guardado. Se agregaron los pasos de ${nuevos.length} módulo(s)` : n ? `Guardado. ${n} fechas recalculadas` : 'Guardado');
     },
     async item(d, f) {
       const i = byId('items', f.dataset.id);
@@ -1320,7 +1444,7 @@
       await touch(f.dataset.pid); closeModal(); render();
     },
     async perdido(d, f) {
-      await db.update('programas', f.dataset.id, { estado: 'perdido', motivo_perdida: d.motivo_perdida.trim(), actualizado: nowIso() });
+      await db.update('programas', f.dataset.id, { estado: 'perdido', estado_cm: 'Cancelado', motivo_perdida: d.motivo_perdida.trim(), actualizado: nowIso() });
       closeModal(); render();
     },
   };
@@ -1329,9 +1453,11 @@
     'f-ruta'(el) { S.f.ruta = el.value; render(); },
     'hide-done'(el) { S.hideDone = el.checked; render(); },
     async 'prog-estado'(el) {
-      const p = byId('programas', el.dataset.id);
-      if (el.value === 'perdido') { el.value = p.estado; return formPerdido(p); }
-      await db.update('programas', p.id, { estado: el.value, actualizado: nowIso() }); render();
+      const p = byId('programas', el.dataset.id), cm = el.value, antes = p.estado_cm || 'Proyección';
+      await db.update('programas', p.id, { estado_cm: cm, estado: CM_A_ESTADO[cm] || 'activo', actualizado: nowIso() });
+      await db.insert('bitacora', { programa_id: p.id, fecha: today(), tipo: 'Decisión', resumen: `Estado en el Cuadro Maestro: ${antes} → ${cm}.`, proxima_accion: null });
+      render();
+      if (cm === 'Cancelado' && !p.motivo_perdida) formPerdido(p);
     },
     async import(el) { if (el.files[0]) await importJSON(el.files[0]); },
   };

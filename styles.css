@@ -450,3 +450,24 @@ input[type="date"].input::-webkit-datetime-edit { padding: 0; }
 .menu-li .kpi-ic { width: 36px; height: 36px; border-radius: 11px; }
 .menu-li .muted svg { width: 18px; height: 18px; }
 .btn.danger { display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+/* ───── Formularios del Cuadro Maestro ───── */
+.fsec { margin: 18px 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); font-weight: 700; }
+.more { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; }
+.more summary { cursor: pointer; font-weight: 600; font-size: 14px; list-style: none; }
+.more summary::-webkit-details-marker { display: none; }
+.more summary::after { content: "▾"; float: right; color: var(--ink-3); }
+.more[open] summary::after { content: "▴"; }
+.calc { background: var(--surface-2); border-radius: 12px; padding: 10px 12px; margin: 0 0 12px; }
+.seg { flex-wrap: wrap; }
+.seg button { min-width: 0; white-space: nowrap; }
+.cm .facts { margin-top: 14px; }
+.cm .fact em { font-style: normal; font-weight: 500; color: var(--amber); }
+.miss { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; cursor: pointer; }
+.miss span { font-size: 12px; font-weight: 600; padding: 4px 9px; border-radius: 99px; background: var(--amber-soft); color: var(--amber); }
+.cm-dash { cursor: pointer; }
+.cm-dash .muted svg { width: 18px; height: 18px; }
+@media (min-width: 1000px) { .dash .cm-dash { grid-column: 2; } }
+.seg.pills-seg { border: 0; border-radius: 0; gap: 6px; overflow: visible; }
+.seg.pills-seg button { flex: 0 0 auto; border: 1px solid var(--line) !important; border-radius: 999px; padding: 8px 14px; background: var(--surface); }
+.seg.pills-seg button.on { border-color: var(--accent) !important; }
