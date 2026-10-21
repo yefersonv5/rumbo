@@ -658,3 +658,18 @@ input[type="date"].input::-webkit-datetime-edit { padding: 0; }
 .acc-ic svg { width: 18px; height: 18px; }
 .acc b { font-size: 14px; font-weight: 650; }
 .acc small { font-size: 11.5px; color: var(--ink-3); line-height: 1.3; }
+
+/* ───── Importar y completar el Cuadro Maestro ───── */
+.imp-res { display: grid; gap: 10px; }
+.imp-row { display: flex; align-items: baseline; gap: 12px; }
+.imp-row b { font-size: 22px; font-weight: 750; min-width: 40px; text-align: right; color: var(--accent); font-variant-numeric: tabular-nums; }
+.imp-row span { display: flex; flex-direction: column; font-size: 14px; font-weight: 600; }
+.imp-row small { font-size: 12px; font-weight: 400; color: var(--ink-3); }
+.comp-top { margin-bottom: 12px; }
+.comp-top .bar { margin-top: 8px; }
+.comp-name { font-size: 19px; line-height: 1.25; margin: 10px 0 4px; }
+.comp-q { background: var(--accent-soft); border-radius: 14px; padding: 12px; margin-bottom: 14px; }
+.comp-q b { display: block; font-size: 14px; margin-bottom: 8px; }
+.comp .seg.pills-seg, .comp-q .seg { flex-wrap: wrap; }
+.empty-ok { text-align: center; display: grid; justify-items: center; gap: 6px; padding: 28px 18px; }
+.empty-ok h1 { font-size: 20px; }

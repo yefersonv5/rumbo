@@ -8,26 +8,36 @@
   // Responsables por cargo (nunca nombres propios)
   const ACTORES = ['Yo', 'Asistente administrativa', 'Auxiliar administrativa', 'Director del programa', 'Gestor de facultad', 'Gestor de comunicaciones', 'Presupuestos', 'Finanzas', 'DIDE', 'Gerente administrativo', 'Secretaría de la división', 'Cliente', 'Proveedor', 'Docente', 'Financiera', 'Facultad', 'Jurídica', 'Dirección EC'];
   const TIPOS = ['Curso', 'Diplomado', 'Seminario', 'Taller', 'Congreso', 'Jornada', 'Simposio', 'Foro', 'Microcredencial', 'Rotación', 'Certificación', 'Aval'];
-  const FACULTADES = ['Enfermería', 'Medicina', 'Odontología', 'Psicología', 'Ciencias Económicas y Administrativas', 'Ingeniería', 'Educación', 'Otra'];
-  const MODALIDADES = ['Virtual sincrónica', 'Virtual asincrónica', 'Presencial', 'Híbrida'];
+  // Listas del Cuadro Maestro (hoja Listas de tu archivo)
+  const FACULTADES = ['ENFERMERIA', 'MEDICINA', 'ODONTOLOGÍA', 'PSICOLOGÍA', 'SIMULACIÓN', 'ADMINISTRACIÓN', 'BIBLIOTECA', 'CENTRO DE LENGUAS', 'CIENCIAS', 'CREACIÓN Y COMUNICACIÓN', 'DERECHO', 'DIDE',
+    'DIVERSIDAD, EQUIDAD E INCLUSIÓN', 'EDUCACIÓN', 'HUB Iex', 'HUMANIDADES', 'INGENIERÍA', 'VICE INVESTIGACIONES', 'OTRO'];
+  const PROGRAMAS_CM = ['Enfermería', 'Medicina', 'Odontología', 'Psicología', 'Optometría', 'Instrumentación Quirúrgica', 'Química Farmacéutica', 'Simulación', 'Bioingeniería', 'Biología',
+    'Administración de Empresas', 'Administración de Negocios Sostenibles', 'Administración de Producción y Logística Internacional', 'Arquitectura', 'Arte Dramático', 'Artes Plásticas',
+    'Ciencia Política y Gobierno', 'Contaduría Pública', 'Derecho', 'Diseño de Comunicación', 'Diseño Industrial', 'Economía', 'Estadística', 'Filosofía', 'Finanzas', 'Formación Musical',
+    'Ingeniería Ambiental', 'Ingeniería de Sistemas', 'Ingeniería Electrónica', 'Ingeniería Industrial', 'Intérprete Profesional de la Lengua de Señas Colombiana',
+    'Licenciatura en Bilingüismo con Énfasis en la Enseñanza del Inglés', 'Licenciatura en Educación Infantil', 'Marketing y Transformación Digital', 'Matemáticas', 'Negocios Internacionales',
+    'Especialización en Docencia de la Educación Superior', 'Especialización en Dermatología', 'Doctorado en Salud Pública', 'Otro'];
+  const SEGMENTOS = ['EDUCACIÓN CONTINUA', 'BOSQUE SENIOR', 'BOSQUE KIDS & JUNIOR'];
+  const LINEAS_CM = ['SECTOR SALUD & FARMA', 'BOSQUE SENIOR', 'BOSQUE KIDS & JUNIOR', 'EVENTOS Y CONGRESOS', 'SECTOR ABIERTO', 'SECTOR EMPRESAS Y CONVENIOS', 'SECTOR PÚBLICO'];
+  const TIPOS_X = [['CURSOS', 'Cursos'], ['DIPLOMADOS', 'Diplomados'], ['EVENTOS', 'Eventos']];
+  const MODALIDADES = ['Virtual', 'Presencial', 'Semipresencial', 'Híbrido (virtual + presencial)'];
   const TIPOS_BIT = ['Nota', 'Correo', 'Reunión', 'Llamada', 'Decisión'];
   const TIPOS_DOC = ['Propuesta', 'Presupuesto', 'Carta / OC', 'Acta', 'Aval', 'Cronograma', 'Informe', 'Factura', 'Otro'];
   const TIPOS_ENT = ['Farmacéutica', 'Dispositivos médicos', 'IPS / Clínica', 'Sociedad científica', 'Caja de compensación', 'Universidad', 'Entidad pública', 'Otra'];
   const ROLES = ['Decisor', 'Operativo', 'Facturación', 'Académico'];
-  const MONEY = ['valor_total', 'valor_persona', 'valor', 'ingresos'];
+  const MONEY = ['valor_total', 'valor_persona', 'valor', 'ingresos', 'facturado'];
   const NUMS = ['horas', 'participantes', 'margen', 'porcentaje_aval'];
   const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
   const LS_KEY = 'rumbo-datos-v1';
   const PUSH_PUB = 'BER3W2HDUB16BCx6dLPIRmEdxPjj8elhZyUornIHZG-ghd63drn0yYYC3LTQXqr9_jIZ5FVCteC3GstvoonQXDk';
   // Cuadro Maestro (hoja BD): valores fijos de la línea y listas cerradas
-  const GESTOR = 'Yeferson Vargas González', LINEA = 'Salud y Farma';
   const ESTADOS_CM = ['Proyección', 'Negociación', 'Iniciado', 'Ejecutado', 'Aplazado', 'Cancelado'];
   const CM_A_ESTADO = { 'Proyección': 'activo', 'Negociación': 'activo', 'Iniciado': 'activo', 'Ejecutado': 'cerrado', 'Aplazado': 'activo', 'Cancelado': 'perdido' };
   const TIPOS_CM = [['1', 'Curso'], ['2', 'Taller'], ['3', 'Diplomado'], ['4', 'Seminario / congreso'], ['5', 'Otro']];
   const TIPO_CM_LARGO = { 1: 'Cursos y cursos especializados (certificaciones)', 2: 'Talleres', 3: 'Diplomados', 4: 'Seminarios, congresos o simposios', 5: 'Otro' };
-  const PLATAFORMAS = ['Moodle El Bosque', 'Plataforma del cliente', 'Zoom', 'Teams', 'Presencial', 'Otra'];
+  const PLATAFORMAS = ['Zoom', 'Meet', 'Presencial', 'Asincrónico - Ateneo', 'Aval - plataforma externa'];
   const MESES_CM = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
-  const BUILD = '20261021060359';
+  const BUILD = '20261021065934';
 
   const S = {
     data: Object.fromEntries(TABLES.map(t => [t, []])),
@@ -263,26 +273,9 @@
     if (esAbierta(p)) return (Number(p.valor_persona) || 0) * (Number(p.participantes) || 0);
     return Number(p.valor_total) || 0;
   }
-  const facturadoCM = p => S.data.facturacion.filter(f => f.programa_id === p.id && f.estado_pago !== 'pendiente').reduce((a, f) => a + (Number(f.valor) || 0), 0);
+  const facturadoCM = p => S.data.facturacion.filter(f => f.programa_id === p.id && f.estado_pago !== 'pendiente').reduce((a, f) => a + (Number(f.valor) || 0), 0) || Number(p.facturado) || 0;
   const trimestreCM = p => p.fecha_inicio ? 'T' + (Math.floor((parse(p.fecha_inicio).getMonth()) / 3) + 1) : '';
   // Campos que el Cuadro Maestro necesita y que solo tú puedes poner (en orden de cuándo suelen conocerse)
-  function faltantesCM(p) {
-    const f = [];
-    if (!esAbierta(p) && !p.entidad_id) f.push('Empresa');
-    if (!p.tipo_programa) f.push('Tipo de programa');
-    if (!p.facultad) f.push('Facultad');
-    if (!p.modalidad) f.push('Modalidad');
-    if (!p.horas) f.push('Intensidad horaria');
-    if (esAbierta(p) ? !p.valor_persona : !p.valor_total) f.push(esAbierta(p) ? 'Valor por persona' : 'Valor del programa');
-    if (!esAbierta(p) && !p.participantes) f.push('Matriculados');
-    if (!p.fecha_inicio) f.push('Fecha de inicio');
-    if (!p.fecha_fin) f.push('Fecha de fin');
-    if (!p.director) f.push('Director');
-    if (!p.plataforma) f.push('Plataforma');
-    if (['Iniciado', 'Ejecutado'].includes(p.estado_cm) && !p.orden_interna) f.push('Orden interna');
-    return f;
-  }
-  const TOTAL_CM = p => 11 + (['Iniciado', 'Ejecutado'].includes(p.estado_cm) ? 1 : 0) - (esAbierta(p) ? 2 : 0);
   function entidadPorNombre(nombre) {
     const n = (nombre || '').trim().toLowerCase();
     return n ? S.data.entidades.find(e => e.nombre.trim().toLowerCase() === n) : null;
@@ -321,7 +314,7 @@
   }
   // Condiciones de un paso según el programa
   const esVirtual = p => !p.modalidad || p.modalidad !== 'Presencial';
-  const esPresencial = p => !p.modalidad || p.modalidad === 'Presencial' || p.modalidad === 'Híbrida';
+  const esPresencial = p => !p.modalidad || ['Presencial', 'Semipresencial', 'Híbrido (virtual + presencial)', 'Híbrida'].includes(p.modalidad);
   function aplica(p, c) {
     if (!c) return true;
     if (c === 'nuevo') return p.es_nuevo !== false;
@@ -429,7 +422,7 @@
   };
 
   // ───────────── Navegación ─────────────
-  const VISTAS = ['inicio', 'hoy', 'programas', 'calendario', 'mas', 'plantillas', 'revision'];
+  const VISTAS = ['inicio', 'hoy', 'programas', 'calendario', 'mas', 'plantillas', 'revision', 'completar'];
   function routeFromHash() {
     const [n0, id, tab] = location.hash.replace(/^#\/?/, '').split('/');
     const n = n0;
@@ -442,14 +435,15 @@
     if (location.hash !== h) location.hash = h;
     else { routeFromHash(); render(); }
   }
-  const ORDEN_VISTA = { inicio: 0, hoy: 1, calendario: 2, programas: 3, mas: 4, plantillas: 5, programa: 6, revision: 7 };
+  const ORDEN_VISTA = { inicio: 0, hoy: 1, calendario: 2, programas: 3, mas: 4, plantillas: 5, programa: 6, revision: 7, completar: 8 };
   window.addEventListener('hashchange', () => {
     const antes = S.view.name;
-    routeFromHash(); closeModal(); render(); window.scrollTo(0, 0);
+    routeFromHash();
+    if (S.view.name === 'completar' && antes !== 'completar') { S.compSaltados = []; S.compTotal = porCompletar().length; } closeModal(); render(); window.scrollTo(0, 0);
     // Animación corta al cambiar de pantalla: entra desde la derecha al avanzar y desde la izquierda al volver.
     // Solo al entrar a un detalle (ficha del programa, plantillas) o al volver de él, como en Caudal.
     // Entre pestañas de la barra inferior no hay animación: la pantalla cambia quieta.
-    const DETALLE = ['programa', 'plantillas', 'revision'];
+    const DETALLE = ['programa', 'plantillas', 'revision', 'completar'];
     const m = $('#app main');
     if (m && antes !== S.view.name && (DETALLE.includes(S.view.name) || DETALLE.includes(antes))) {
       m.classList.add(DETALLE.includes(S.view.name) ? 'navfwd' : 'navback');
@@ -472,8 +466,9 @@
     else if (v === 'revision') body = viewRevision();
     else if (v === 'mas') body = viewMas();
     else if (v === 'plantillas') body = viewPlantillas();
+    else if (v === 'completar') body = viewCompletar();
     else body = viewInicio();
-    const sec = v === 'programa' ? 'programas' : v === 'plantillas' ? 'mas' : v === 'revision' ? 'hoy' : v;
+    const sec = v === 'programa' ? 'programas' : v === 'plantillas' ? 'mas' : v === 'revision' ? 'hoy' : v === 'completar' ? 'inicio' : v;
     const nb = (k, l, ic) => `<button class="${sec === k ? 'on' : ''}" data-act="nav" data-to="${k}" aria-label="${l}">${ic}<span>${l}</span></button>`;
     app.innerHTML = `
       ${S.mode === 'local' ? '<div class="banner">Modo local: los datos viven solo en este navegador.</div>' : ''}
@@ -487,7 +482,7 @@
       <nav class="bottom-nav">
         ${nb('inicio', 'Inicio', ICON.home)}${nb('hoy', 'Mi día', ICON.sun)}${nb('calendario', 'Calendario', ICON.cal)}${nb('programas', 'Programas', ICON.prog)}${nb('mas', 'Más', ICON.more)}
       </nav>
-      <button class="fab" data-act="acciones" aria-label="Agregar">${ICON.plus}</button>`;
+      ${v === 'completar' ? '' : `<button class="fab" data-act="acciones" aria-label="Agregar">${ICON.plus}</button>`}`;
   }
 
   function viewLogin() {
@@ -693,7 +688,7 @@
       <div class="grow"><div class="title ellipsis">${esc(h.hito)}</div><div class="sub ellipsis">${esc(nombreProg(p))} · ${esc(h.responsable || 'Yo')}</div></div>
       ${h.fecha_limite ? `<span class="pill ${e === 'late' ? 'red' : diffDays(h.fecha_limite, t) <= 7 ? 'amber' : ''}">${relDate(h.fecha_limite)}</span>` : '<span class="pill">Sin fecha</span>'}</div>`; };
     const cartera = activos.reduce((s, p) => s + ingresosCM(p), 0);
-    const incompletos = activos.filter(p => faltantesCM(p).length);
+    const incompletos = porCompletar();
     const margenes = activos.filter(p => p.margen !== null && p.margen !== undefined && p.margen !== '');
     const margen = margenes.length ? Math.round(margenes.reduce((s, p) => s + Number(p.margen), 0) / margenes.length) : null;
     const inicios = activos.filter(p => p.fecha_inicio && p.fecha_inicio >= t && p.fecha_inicio <= t30).sort(byDate('fecha_inicio'));
@@ -720,12 +715,12 @@
         </div>
         ${cartera ? `<div class="card money-card"><span class="kpi-ic violet">${ICON.money}</span><div class="grow"><span class="muted small">Ingresos en cartera</span><b>${money(cartera)}</b></div>
           ${margen !== null ? `<div class="mg"><span class="muted small">Margen promedio</span><b>${margen} %</b></div>` : ''}</div>` : ''}
-        <div class="card money-card cm-dash" data-act="${incompletos.length ? 'open' : 'export-xlsx'}" data-id="${incompletos[0]?.id || ''}" role="button">
+        <div class="card money-card cm-dash" data-act="${incompletos.length ? 'nav' : 'export-cm'}" data-to="completar" role="button">
           <span class="kpi-ic ${incompletos.length ? 'amber' : 'green'}">${ICON.tpl}</span>
           <div class="grow"><span class="muted small">Cuadro Maestro</span><b style="font-size:16px">${incompletos.length ? `${plural(incompletos.length, 'programa')} con datos por completar` : 'Todo listo para exportar'}</b></div>
           <span class="muted">${ICON.next}</span></div>
         <div class="quick">
-          ${qa(ICON.plus, 'Nuevo programa', 'nuevo')}${qa(ICON.note, 'Registrar', 'captura')}${qa(ICON.sun, 'Mi día', 'nav', ' data-to="hoy"')}${qa(ICON.download, 'Exportar', 'export-xlsx')}
+          ${qa(ICON.plus, 'Nuevo programa', 'nuevo')}${qa(ICON.note, 'Registrar', 'captura')}${qa(ICON.sun, 'Mi día', 'nav', ' data-to="hoy"')}${qa(ICON.download, 'Exportar', 'export-cm')}
         </div>
       </div>
       <div class="dash-cols">
@@ -1130,7 +1125,7 @@
     const n = e => S.data.programas.filter(p => e === 'todos' || p.estado === e).length;
     const chip = (v, l) => `<button class="chip ${S.f.estado === v ? 'on' : ''}" data-act="f-estado" data-v="${v}">${l}<span>${n(v)}</span></button>`;
     return `
-      <div class="page-head"><h1>Programas</h1><div class="row"><button class="icon-btn" data-act="export-xlsx" aria-label="Exportar Cuadro Maestro en Excel" title="Exportar Cuadro Maestro">${ICON.download}</button><button class="btn primary" data-act="nuevo">${ICON.plus}<span>Nuevo</span></button>${avatarBtn()}</div></div>
+      <div class="page-head"><h1>Programas</h1><div class="row"><button class="icon-btn" data-act="export-cm" aria-label="Exportar Cuadro Maestro" title="Exportar Cuadro Maestro">${ICON.download}</button><button class="btn primary" data-act="nuevo">${ICON.plus}<span>Nuevo</span></button>${avatarBtn()}</div></div>
       <div class="filters">
         <input class="input search" type="search" placeholder="Buscar programa, entidad, facultad…" value="${esc(S.f.q)}" data-input="buscar">
         <select class="input" data-change="f-ruta">${opts(S.data.rutas.map(r => [r.id, r.nombre]), S.f.ruta, 'Todas las rutas')}</select>
@@ -1171,10 +1166,14 @@
       <div class="kpis kpis-3 section">
         ${kpi(ICON.folder, 'violet', ps.length, 'Programas')}${kpi(ICON.flag, 'green', ps.filter(p => p.estado === 'cerrado').length, 'Cerrados')}${kpi(ICON.note, 'blue', S.data.entidades.length, 'Entidades')}
       </div>
+      <div class="card list section"><div class="pad" style="padding-bottom:4px"><h2>Cuadro Maestro</h2><p class="small muted" style="margin:4px 0 0">${CMF.tiene ? `Formato guardado${CMF.fecha ? ' el ' + fmtDate(CMF.fecha) : ''}: el archivo sale igual al tuyo.` : 'Importa tu archivo una vez: cargo tus programas y lo uso como formato para exportar.'}</p></div>
+        <label class="li menu-li"><span class="kpi-ic violet">${ICON.upload}</span><div class="grow"><div class="title">Importar Cuadro Maestro</div><div class="sub">Tu Excel con la hoja BD: crea o actualiza tus programas</div></div><input type="file" accept=".xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" data-change="import-cm" hidden></label>
+        ${row(ICON.download, 'Exportar Cuadro Maestro', 'export-cm', '', CMF.tiene ? 'Tu mismo archivo, con la hoja BD al día' : 'Con las columnas de la hoja BD')}
+        ${row(ICON.check, 'Completar datos', 'nav', ' data-to="completar"', `${plural(porCompletar().length, 'programa')} con datos o preguntas pendientes`)}
+        ${row(ICON.gantt, 'Reporte de seguimiento', 'export-xlsx', '', 'Excel con seguimiento, hitos y pendientes por programa')}
+      </div>
       <div class="card list section">
         ${row(ICON.tpl, 'Plantillas', 'nav', ' data-to="plantillas"', 'Rutas y módulos con los que nace cada programa')}
-        ${row(ICON.download, 'Exportar Cuadro Maestro (Excel)', 'export-xlsx', '', 'Hoja BD lista para pegar, más seguimiento, hitos y pendientes')}
-        ${row(ICON.download, 'Exportar solo la hoja BD (CSV)', 'export-csv', '', 'Mismas columnas, separadas por punto y coma')}
         ${row(ICON.download, 'Descargar respaldo', 'export-json', '', 'Copia completa en JSON')}
         <label class="li menu-li"><span class="kpi-ic violet">${ICON.upload}</span><div class="grow"><div class="title">Importar respaldo</div><div class="sub">Desde un archivo JSON</div></div><input type="file" accept="application/json,.json" data-change="import" hidden></label>
       </div>
@@ -1224,7 +1223,7 @@
       <div class="row between"><div><h2>Cuadro Maestro</h2><p class="small muted" style="margin:2px 0 0">${falt.length ? `${ok} de ${tot} datos listos` : 'Datos completos'}</p></div>
         <button class="btn sm" data-act="edit-cm" data-id="${p.id}">${ICON.edit}<span>${falt.length ? 'Completar' : 'Editar'}</span></button></div>
       <div class="bar" style="margin:10px 0 4px"><i style="width:${pct}%"></i></div>
-      ${falt.length ? `<div class="miss" data-act="edit-cm" data-id="${p.id}" role="button">${falt.map(x => `<span>${esc(x)}</span>`).join('')}</div>` : ''}
+      ${falt.length ? `<div class="miss" data-act="edit-cm" data-id="${p.id}" role="button">${falt.map(x => `<span>${esc(ETQ_CM[x] || x)}</span>`).join('')}</div>` : ''}
       <div class="facts">
         ${fact('Tipo', esAbierta(p) ? 'ABIERTO' : 'CERRADO')}${fact('Tipo de programa', tipoLabel(p))}${fact('Empresa', esAbierta(p) ? 'Oferta abierta' : entidadDe(p)?.nombre)}
         ${fact('Fechas', fechas)}${fact('Trimestre', trimestreCM(p))}${fact('Facultad', p.facultad)}${fact('Modalidad', p.modalidad)}${fact('Plataforma', p.plataforma)}
@@ -1484,7 +1483,7 @@
     if (!standalone) return;
     let x0 = null, y0 = 0, dx = 0, on = false, t0 = 0;
     const main = () => $('#app main');
-    const puedeVolver = () => isOpen() || ['programa', 'plantillas', 'revision'].includes(S.view.name);
+    const puedeVolver = () => isOpen() || ['programa', 'plantillas', 'revision', 'completar'].includes(S.view.name);
     document.addEventListener('touchstart', e => {
       x0 = null;
       if (window.innerWidth >= 860 || e.touches.length > 1 || !puedeVolver()) return;
@@ -1509,7 +1508,7 @@
       if (!m) return;
       if (ok) {
         m.style.transition = 'transform .18s ease-out'; m.style.transform = 'translateX(100%)';
-        setTimeout(() => { S.navBack = true; if (history.length > 1) history.back(); else go(S.view.name === 'plantillas' ? 'mas' : S.view.name === 'revision' ? 'hoy' : 'programas'); }, 180);
+        setTimeout(() => { S.navBack = true; if (history.length > 1) history.back(); else go(S.view.name === 'plantillas' ? 'mas' : S.view.name === 'revision' ? 'hoy' : S.view.name === 'completar' ? 'inicio' : 'programas'); }, 180);
       } else {
         m.style.transition = 'transform .2s ease-out'; m.style.transform = '';
         setTimeout(() => { m.style.transition = ''; }, 220);
@@ -1580,12 +1579,14 @@
       <h4 class="fsec">Fechas</h4>
       <div class="two">${fld('Inicio', inp('fecha_inicio', p.fecha_inicio, 'type="date"'))}${fld('Fin', inp('fecha_fin', p.fecha_fin, 'type="date"'))}</div>
       <h4 class="fsec">Académico</h4>
-      <div class="two">${fld('Facultad', `<select class="input" name="facultad">${opts(FACULTADES, p.facultad, 'Elegir…')}</select>`)}
+      <div class="two">${fld('Facultad', `<select class="input" name="facultad">${opts(FACULTADES.includes(p.facultad) || !p.facultad ? FACULTADES : [...FACULTADES, p.facultad], p.facultad, 'Elegir…')}</select>`)}
         ${fld('Modalidad', `<select class="input" name="modalidad">${opts(MODALIDADES, p.modalidad, 'Elegir…')}</select>`)}</div>
       <div class="two">${fld('Intensidad horaria', inp('horas', p.horas, 'type="number" min="0" step="any" inputmode="decimal"'))}
         ${fld('Plataforma', `<select class="input" name="plataforma">${opts(PLATAFORMAS.includes(p.plataforma) || !p.plataforma ? PLATAFORMAS : [...PLATAFORMAS, p.plataforma], p.plataforma, 'Elegir…')}</select>`)}</div>
-      ${fld('Nombre del director', inp('director', p.director))}
-      ${fld('Programa académico <span class="muted">(opcional)</span>', inp('programa_academico', p.programa_academico, 'placeholder="Ej.: Especialización en Enfermería Oncológica"'))}
+      <div class="two">${fld('Nombre del director', inp('director', p.director))}${fld('Cédula del director <span class="muted">(opcional)</span>', inp('director_cedula', p.director_cedula, 'inputmode="numeric"'))}</div>
+      ${fld('Programa', inp('programa_academico', p.programa_academico, 'list="dl-progcm" autocomplete="off" placeholder="Ej.: Enfermería"'))}
+      <datalist id="dl-progcm">${PROGRAMAS_CM.map(x => `<option value="${esc(x)}">`).join('')}</datalist>
+      ${fld('Tipo en el Cuadro Maestro', seg('tipo_cm', TIPOS_X, tipoCM(p)))}
       <h4 class="fsec">Comercial</h4>
       <div class="two">${fld('Matriculados', inp('participantes', p.participantes, 'type="number" min="0" inputmode="numeric"'))}
         ${fld(valorLbl, inp(esAbierta(p) ? 'valor_persona' : 'valor_total', esAbierta(p) ? p.valor_persona : p.valor_total, 'inputmode="numeric"'))}</div>
@@ -1593,8 +1594,11 @@
       <p class="small calc">Ingresos para el Cuadro Maestro: <b data-ingresos>${money(ingresosCM(p)) || '$ 0'}</b>
         <span class="muted tiny">${esAval(p) ? '(valor × % del aval)' : esAbierta(p) ? '(valor por persona × matriculados)' : '(valor del programa)'}</span></p>
       <div class="two">${fld('Orden interna', inp('orden_interna', p.orden_interna))}${fld('Margen de contribución (%)', inp('margen', p.margen, 'type="number" step="any"'))}</div>
-      ${fld('Segmento <span class="muted">(opcional)</span>', inp('segmento', p.segmento))}
-      ${fld('Ingresos, solo si difieren del cálculo <span class="muted">(opcional)</span>', inp('ingresos', p.ingresos, 'inputmode="numeric" placeholder="Déjalo vacío para usar el cálculo"'))}
+      <div class="two">${fld('Segmento', `<select class="input" name="segmento">${opts(SEGMENTOS, p.segmento || 'EDUCACIÓN CONTINUA')}</select>`)}
+        ${fld('Línea de negocio', `<select class="input" name="linea_cm">${opts(LINEAS_CM, p.linea_cm || 'SECTOR SALUD & FARMA')}</select>`)}</div>
+      <div class="two">${fld('Ingresos 2026 <span class="muted">(si difieren del cálculo)</span>', inp('ingresos', p.ingresos, 'inputmode="numeric" placeholder="Vacío: se calcula"'))}
+        ${fld('Facturado 2026', inp('facturado', p.facturado, 'inputmode="numeric"'))}</div>
+      ${fld('Acuerdo del Consejo de Investigación <span class="muted">(opcional)</span>', inp('acuerdo_consejo', p.acuerdo_consejo))}
       <h4 class="fsec">Seguimiento</h4>
       ${modulos}
       ${fld('Notas', `<textarea class="input" name="notas" rows="3">${esc(p.notas || '')}</textarea>`)}
@@ -1874,8 +1878,8 @@
     if (/\baval\b/.test(tx)) out.ruta = 'aval'; else if (/oferta abierta|inscripciones abiertas|micrositio/.test(tx)) out.ruta = 'abierta';
     if (/diplomado/.test(tx)) out.tipo_programa = '3'; else if (/taller/.test(tx)) out.tipo_programa = '2';
     else if (/seminario|congreso|simposio/.test(tx)) out.tipo_programa = '4'; else if (/curso|certificacion|microcredencial/.test(tx)) out.tipo_programa = '1';
-    if (/hibrid/.test(tx)) out.modalidad = 'Híbrida'; else if (/presencial/.test(tx)) out.modalidad = 'Presencial';
-    else if (/asincronic/.test(tx)) out.modalidad = 'Virtual asincrónica'; else if (/virtual|sincronic|zoom|teams|en linea|online/.test(tx)) out.modalidad = 'Virtual sincrónica';
+    if (/hibrid/.test(tx)) out.modalidad = 'Híbrido (virtual + presencial)'; else if (/presencial/.test(tx)) out.modalidad = 'Presencial';
+    else if (/semipresencial/.test(tx)) out.modalidad = 'Semipresencial'; else if (/virtual|sincronic|zoom|teams|meet|en linea|online/.test(tx)) out.modalidad = 'Virtual';
     if (/nueva cohorte|segunda cohorte|nueva edicion|nueva version|otra cohorte/.test(tx)) out.es_nuevo = '0';
     let x;
     if ((x = tx.match(/(\d{1,4})\s*(horas|h\b)/))) out.horas = Number(x[1]);
@@ -1887,7 +1891,7 @@
     let resto = tx;
     for (let k = 0; k < 4 && fechas.length < 2; k++) { const f = leerFecha(resto); if (!f) break; if (!/^(hoy|manana)/.test(f.m.trim())) fechas.push(f.f); resto = resto.replace(f.m, ' '); }
     fechas.sort(); if (fechas[0]) out.fecha_inicio = fechas[0]; if (fechas[1]) out.fecha_fin = fechas[1];
-    for (const f of FACULTADES) if (tx.includes(norm(f)) && f !== 'Otra') { out.facultad = f; break; }
+    for (const f of FACULTADES) if (tx.includes(norm(f)) && f !== 'OTRO') { out.facultad = f; break; }
     return out;
   }
   function llenarPrograma(f, d) {
@@ -1896,7 +1900,7 @@
     if (d.empresa && f.empresa && !f.empresa.value.trim()) f.empresa.value = d.empresa;
     if (d.ruta) { const b = f.querySelector(`[data-act="seg-ruta"][data-clave="${d.ruta}"]`); if (b) b.click(); }
     setSeg('tipo_programa', d.tipo_programa); setSeg('es_nuevo', d.es_nuevo);
-    if (d.modalidad && MODALIDADES.includes(d.modalidad)) f.modalidad.value = d.modalidad;
+    const md = modDesde(d.modalidad); if (md && f.modalidad) f.modalidad.value = md;
     if (d.fecha_inicio && /^\d{4}-\d{2}-\d{2}$/.test(d.fecha_inicio)) f.fecha_inicio.value = d.fecha_inicio;
     if (d.fecha_fin && /^\d{4}-\d{2}-\d{2}$/.test(d.fecha_fin)) f.fecha_fin.value = d.fecha_fin;
     const extra = { horas: d.horas, participantes: d.participantes, valor: d.valor ?? d.valor_total ?? d.valor_persona, facultad: d.facultad, director: d.director };
@@ -2027,21 +2031,410 @@
   }
 
   // ───────────── Exportar / importar ─────────────
+  const CM_HEAD = ['Gestor', 'Línea de negocio', 'Tipo', 'Mes', 'Día', 'Mes2', 'Día3', 'Orden Interna', 'Acuerdo consejo investigación', 'Nombre del programa', 'Empresa\n(N/A Para Abierto)', 'Estado',
+    'Matriculados', 'Intensidad Horaria', 'Valor programa \n(Valor de contrato)', 'Ingresos 2026', 'Facturado 2026', 'Facultad UEB', 'Programa', 'Nombre del director', 'Cédula', 'Modalidad',
+    'Plataforma (Zomm / Meet)', 'Tipo Programa', 'Id_Tipo Curso', 'Segmento', 'Trimestre', 'Semestre'];
+  const cmFila = p => { const v = cmValores(p); return CM_COLS.map(([k]) => v[k] ?? ''); };
   function exportCSV() {
-    // Mismas columnas de la hoja BD del Cuadro Maestro, en ese orden, para pegar directo.
-    const cols = ['Gestor', 'Línea de negocio', 'Tipo', 'Mes', 'Día', 'Mes', 'Día', 'Orden interna', 'Nombre del programa', 'Empresa', 'Estado',
-      'Matriculados', 'Intensidad horaria', 'Valor programa', 'Ingresos', 'Facturado', 'Facultad UEB', 'Programa', 'Nombre del director', 'Modalidad',
-      'Plataforma', 'Tipo programa', 'Segmento', 'Trimestre'];
-    const mes = d => d ? MESES_CM[parse(d).getMonth()] : '', dia = d => d ? parse(d).getDate() : '';
-    const rows = S.data.programas.map(p => [GESTOR, LINEA, esAbierta(p) ? 'ABIERTO' : 'CERRADO', mes(p.fecha_inicio), dia(p.fecha_inicio), mes(p.fecha_fin), dia(p.fecha_fin),
-      p.orden_interna, p.nombre, esAbierta(p) ? 'OFERTA ABIERTA' : (entidadDe(p)?.nombre || ''), p.estado_cm || 'Proyección',
-      p.participantes, p.horas, esAbierta(p) ? p.valor_persona : p.valor_total, ingresosCM(p) || '', facturadoCM(p) || '', p.facultad, p.programa_academico,
-      p.director, p.modalidad, p.plataforma, p.tipo_programa, p.segmento, trimestreCM(p)]);
     const cell = v => { const x = String(v ?? ''); return /[;"\n\r]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x; };
-    download(`cuadro-maestro-${today()}.csv`, '\ufeff' + [cols, ...rows].map(r => r.map(cell).join(';')).join('\r\n'), 'text/csv;charset=utf-8');
-    toast('CSV con las columnas del Cuadro Maestro');
+    download(`cuadro-maestro-${today()}.csv`, '\ufeff' + [CM_HEAD, ...programasCM().map(cmFila)].map(r => r.map(cell).join(';')).join('\r\n'), 'text/csv;charset=utf-8');
+    toast('CSV con las columnas de la hoja BD');
   }
-  // Excel del Cuadro Maestro: hoja BD (mismas columnas, para pegar), seguimiento por programa, hitos y pendientes
+
+  // ───────────── Cuadro Maestro: importar tu archivo y exportarlo idéntico ─────────────
+  // Columnas de la hoja BD, reconocidas por su encabezado (el orden y el texto exacto salen del archivo).
+  const CM_COLS = [
+    ['gestor', /^gestor/], ['linea', /^linea de negocio/], ['tipo', /^tipo$/], ['mes_i', /^mes$/], ['dia_i', /^dia$/], ['mes_f', /^mes ?2$/], ['dia_f', /^dia ?3$/],
+    ['orden', /^orden interna/], ['acuerdo', /^acuerdo/], ['nombre', /^nombre del programa/], ['empresa', /^empresa/], ['estado', /^estado/],
+    ['matric', /^matriculados/], ['horas', /^intensidad/], ['valor', /^valor programa/], ['ingresos', /^ingresos/], ['facturado', /^facturado/],
+    ['facultad', /^facultad/], ['programa', /^programa$/], ['director', /^nombre del director/], ['cedula', /^cedula/], ['modalidad', /^modalidad/],
+    ['plataforma', /^plataforma/], ['tipo_prog', /^tipo programa/], ['id_tipo', /^id.?tipo/], ['segmento', /^segmento/], ['trimestre', /^trimestre/], ['semestre', /^semestre/],
+  ];
+  const cmClave = h => { const n = norm(String(h ?? '').replace(/_x000a_/gi, ' ').replace(/\n/g, ' ')).replace(/\(.*$/, '').trim(); return (CM_COLS.find(([, re]) => re.test(n)) || [])[0] || null; };
+  const ESTADO_CM_FILE = { 'Proyección': 'PROYECCIÓN / EN NEGOCIACIÓN', 'Negociación': 'PROYECCIÓN / EN NEGOCIACIÓN', 'Iniciado': 'INICIADO / EJECUTADO', 'Ejecutado': 'INICIADO / EJECUTADO', 'Aplazado': 'APLAZADO / CANCELADO', 'Cancelado': 'APLAZADO / CANCELADO' };
+  const MOD_FILE = { 'Virtual': 'VIRTUAL ', 'Virtual sincrónica': 'VIRTUAL ', 'Virtual asincrónica': 'VIRTUAL ', 'Presencial': 'PRESENCIAL', 'Semipresencial': 'SEMIPRESENCIAL', 'Híbrido (virtual + presencial)': 'HÍBRIDO (VIRTUAL + PRESENCIAL)', 'Híbrida': 'HÍBRIDO (VIRTUAL + PRESENCIAL)' };
+  const modDesde = v => { const n = norm(v); if (!n) return null; if (n.startsWith('hibrid')) return 'Híbrido (virtual + presencial)'; if (n.startsWith('semi')) return 'Semipresencial'; if (n.startsWith('presencial')) return 'Presencial'; if (n.includes('virtual') || n.includes('sincron')) return 'Virtual'; return null; };
+  const PLAT_FILE = { 'Zoom': 'ZOOM', 'Meet': 'MEET', 'Presencial': 'PRESENCIAL', 'Asincrónico - Ateneo': 'ASINCRONICO - ATENEO', 'Aval - plataforma externa': 'AVAL - PLATAFORMA EXTERNA' };
+  const platDesde = v => { const n = norm(v); if (!n) return null; const k = Object.keys(PLAT_FILE).find(x => norm(PLAT_FILE[x]) === n || norm(x) === n); return k || String(v).trim(); };
+  const FAC_VIEJAS = { 'Enfermería': 'ENFERMERIA', 'Medicina': 'MEDICINA', 'Odontología': 'ODONTOLOGÍA', 'Psicología': 'PSICOLOGÍA', 'Ingeniería': 'INGENIERÍA', 'Educación': 'EDUCACIÓN', 'Ciencias Económicas y Administrativas': 'ADMINISTRACIÓN', 'Otra': 'OTRO' };
+  const facultadCM = p => FAC_VIEJAS[p.facultad] || p.facultad || '';
+  const TIPO_X = { 1: 'CURSOS', 2: 'CURSOS', 3: 'DIPLOMADOS', 4: 'EVENTOS', 5: 'CURSOS' };
+  const tipoCM = p => p.tipo_cm || TIPO_X[p.tipo_programa] || 'CURSOS';
+  const num = v => { if (v === null || v === undefined || v === '') return null; const n = typeof v === 'number' ? v : Number(String(v).replace(/[$\s.]/g, '').replace(',', '.')); return isNaN(n) ? null : n; };
+  // Valores de una fila del Cuadro Maestro para un programa, con el vocabulario exacto del archivo
+  function cmValores(p) {
+    const raw = p.cm_raw || {}, ab = esAbierta(p), imp = !!p.cm_raw;
+    const mes = d => d ? MESES_CM[parse(d).getMonth()] : null, dia = d => d ? parse(d).getDate() : null;
+    const mismaFecha = raw._fi === (p.fecha_inicio || null) && raw._ff === (p.fecha_fin || null);
+    const tri = p.fecha_inicio ? 'T' + (Math.floor(parse(p.fecha_inicio).getMonth() / 3) + 1) : null, sem = p.fecha_inicio ? (parse(p.fecha_inicio).getMonth() < 6 ? 1 : 2) : null;
+    const tipoRaw = ['ABIERTO', 'CERRADO', 'EVENTOS'].includes(raw.tipo) && ((raw.tipo === 'ABIERTO') === ab) ? raw.tipo : null;
+    const ingresos = p.ingresos !== null && p.ingresos !== undefined && p.ingresos !== '' ? Number(p.ingresos) : imp ? null : (['Iniciado', 'Ejecutado'].includes(p.estado_cm) ? ingresosCM(p) || null : null);
+    const fact = p.facturado !== null && p.facturado !== undefined && p.facturado !== '' ? Number(p.facturado) : (facturadoCM(p) || (imp ? null : null));
+    const igual = (rv, v) => typeof rv === 'string' && v !== null && v !== undefined && rv.trim() === String(v).trim() ? rv : v;
+    const ordenN = p.orden_interna && /^\d+$/.test(String(p.orden_interna).trim()) ? Number(p.orden_interna) : (p.orden_interna || null);
+    const estadoF = ESTADO_CM_FILE[p.estado_cm || 'Proyección'];
+    return {
+      gestor: raw.gestor || 'YEFERSON VARGAS', linea: p.linea_cm || raw.linea || 'SECTOR SALUD & FARMA', tipo: tipoRaw || (ab ? 'ABIERTO' : 'CERRADO'),
+      mes_i: imp && mismaFecha ? raw.mes_i ?? null : mes(p.fecha_inicio), dia_i: imp && mismaFecha ? raw.dia_i ?? null : dia(p.fecha_inicio),
+      mes_f: imp && mismaFecha ? raw.mes_f ?? null : mes(p.fecha_fin), dia_f: imp && mismaFecha ? raw.dia_f ?? null : dia(p.fecha_fin),
+      orden: raw.orden !== undefined && raw.orden !== null && String(raw.orden).trim() === String(p.orden_interna ?? '').trim() ? raw.orden : ordenN,
+      acuerdo: igual(raw.acuerdo, p.acuerdo_consejo || null), nombre: igual(raw.nombre, p.nombre), empresa: ab ? (raw.empresa || 'N/A') : igual(raw.empresa, entidadDe(p)?.nombre || raw.empresa || null),
+      estado: raw.estado && ESTADO_CM_FILE[p.estado_cm] && norm(raw.estado) === norm(estadoF) ? raw.estado : estadoF,
+      matric: num(p.participantes), horas: num(p.horas), valor: num(ab ? p.valor_persona : p.valor_total), ingresos, facturado: fact,
+      facultad: igual(raw.facultad, facultadCM(p) || null), programa: igual(raw.programa, p.programa_academico || null), director: igual(raw.director, p.director || null), cedula: igual(raw.cedula, p.director_cedula || null),
+      modalidad: raw.modalidad && modDesde(raw.modalidad) === p.modalidad ? raw.modalidad : (MOD_FILE[p.modalidad] || p.modalidad || null),
+      plataforma: raw.plataforma && platDesde(raw.plataforma) === p.plataforma ? raw.plataforma : (PLAT_FILE[p.plataforma] || (p.plataforma ? String(p.plataforma).toUpperCase() : null)),
+      tipo_prog: tipoCM(p), id_tipo: num(p.tipo_programa) ?? 1, segmento: p.segmento || raw.segmento || 'EDUCACIÓN CONTINUA',
+      trimestre: mismaFecha && raw.trimestre ? raw.trimestre : (tri || raw.trimestre || null), semestre: mismaFecha && raw.semestre ? raw.semestre : (sem ?? raw.semestre ?? null),
+    };
+  }
+  // Orden de las filas: el del archivo importado, y los programas nuevos al final por fecha de inicio
+  const programasCM = () => [...S.data.programas].sort((a, b) => ((a.cm_raw?._row ?? 1e6) - (b.cm_raw?._row ?? 1e6)) || (a.fecha_inicio || '9999').localeCompare(b.fecha_inicio || '9999') || (a.created_at || '').localeCompare(b.created_at || ''));
+
+  // ── Leer el archivo ──
+  function leerCuadro(X, buf) {
+    const wb = X.read(buf, { type: 'array', cellDates: false });
+    const nombre = wb.SheetNames.find(n => /^bd\b/i.test(n.trim())) || wb.SheetNames[0];
+    const ws = wb.Sheets[nombre];
+    const filas = X.utils.sheet_to_json(ws, { header: 1, raw: true, defval: null, blankrows: true });
+    const hi = filas.findIndex(r => r.some(c => cmClave(c) === 'nombre'));
+    if (hi < 0) throw new Error('No encontré la fila de encabezados (con "Nombre del programa") en la hoja ' + nombre);
+    const cols = filas[hi].map(cmClave);
+    const year = Number((nombre.match(/20\d\d/) || [])[0]) || new Date().getFullYear();
+    const out = [];
+    for (let k = hi + 1; k < filas.length; k++) {
+      const r = {}; filas[k].forEach((v, j) => { if (cols[j]) r[cols[j]] = typeof v === 'string' ? (v.trim() === '' ? null : v) : v; });
+      if (!r.nombre || norm(r.gestor) === 'total') { if (norm(r.gestor) === 'total') break; continue; }
+      r._row = k + 1; out.push(r);
+    }
+    return { hoja: nombre, year, filas: out, encabezados: filas[hi] };
+  }
+  const MES_IDX = Object.fromEntries(MESES_CM.map((m, i) => [norm(m), i]));
+  function fechaCM(year, mes, dia) {
+    const m = MES_IDX[norm(mes)]; if (m === undefined) return null;
+    const d = Number(dia) || 1; return isoOf(new Date(year, m, Math.min(28 + 3, d)));
+  }
+  // Fila del archivo → datos de Rumbo
+  function filaAPrograma(r, year) {
+    const t = today();
+    let fi = fechaCM(year, r.mes_i, r.dia_i), ff = fechaCM(year, r.mes_f, r.dia_f);
+    if (fi && ff && ff < fi) ff = fechaCM(year + 1, r.mes_f, r.dia_f);
+    const plat = norm(r.plataforma), ruta = /aval|ateneo/.test(plat) ? 'aval' : norm(r.tipo) === 'abierto' ? 'abierta' : 'cerrado';
+    const e = norm(r.estado);
+    let estado_cm = 'Proyección', estado = 'activo', pend = null;
+    if (e.startsWith('iniciado')) { if (ff && ff < t) { estado_cm = 'Ejecutado'; estado = 'cerrado'; if (diffDays(t, ff) <= 60) pend = 'cierre'; } else estado_cm = 'Iniciado'; }
+    else if (e.startsWith('aplazado')) { estado_cm = 'Aplazado'; estado = 'pausa'; pend = 'aplazado'; }
+    const ab = ruta === 'abierta', idt = num(r.id_tipo);
+    const campos = {
+      nombre: String(r.nombre).trim(), fecha_inicio: fi, fecha_fin: ff, orden_interna: r.orden !== null && r.orden !== undefined ? String(r.orden).trim() : null,
+      acuerdo_consejo: r.acuerdo ? String(r.acuerdo) : null, participantes: num(r.matric), horas: num(r.horas),
+      valor_total: ab ? null : num(r.valor), valor_persona: ab ? num(r.valor) : null, ingresos: num(r.ingresos), facturado: num(r.facturado),
+      facultad: r.facultad ? String(r.facultad).trim() : null, programa_academico: r.programa ? String(r.programa).trim() : null,
+      director: r.director ? String(r.director).trim() : null, director_cedula: r.cedula ? String(r.cedula) : null,
+      modalidad: modDesde(r.modalidad), plataforma: platDesde(r.plataforma), tipo_programa: idt ? String(idt) : '1', tipo_cm: r.tipo_prog ? String(r.tipo_prog).trim() : null,
+      segmento: r.segmento ? String(r.segmento) : null, linea_cm: r.linea ? String(r.linea) : null, estado_cm, estado,
+    };
+    const cm_raw = { ...r, _fi: fi, _ff: ff };
+    return { ruta, campos, cm_raw, pend, empresa: !ab && r.empresa && norm(r.empresa) !== 'n/a' ? String(r.empresa).trim() : null };
+  }
+  const claveProg = (nombre, fi, empresa, orden) => orden ? 'oi:' + String(orden).trim() : `n:${norm(nombre)}|${(fi || '').slice(0, 7)}|${norm(empresa)}`;
+
+  // ── Formato guardado (tu archivo), para exportar idéntico ──
+  const CMF = { tiene: false, nombre: '', fecha: '' };
+  const LS_CMF = 'rumbo-cm-formato';
+  async function guardarFormato(file, buf) {
+    if (S.mode === 'remote') {
+      const { error } = await sb.storage.from('cuadro-maestro').upload('formato.xlsx', new Blob([buf]), { upsert: true, contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      if (error) throw new Error('No pude guardar el formato: ' + error.message);
+    } else {
+      try { let b = ''; const u = new Uint8Array(buf); for (let i = 0; i < u.length; i += 32768) b += String.fromCharCode(...u.subarray(i, i + 32768)); localStorage.setItem(LS_CMF, btoa(b)); } catch (e) { /* sin espacio */ }
+    }
+    Object.assign(CMF, { tiene: true, nombre: file.name, fecha: today() });
+    try { localStorage.setItem(LS_CMF + '-meta', JSON.stringify(CMF)); } catch (e) { /* sin almacenamiento */ }
+  }
+  async function estadoFormato() {
+    try { Object.assign(CMF, JSON.parse(localStorage.getItem(LS_CMF + '-meta') || '{}')); } catch (e) { /* nada */ }
+    if (S.mode === 'remote' && S.user) {
+      try { const { data } = await sb.storage.from('cuadro-maestro').list('', { search: 'formato.xlsx' }); const f = (data || []).find(x => x.name === 'formato.xlsx'); CMF.tiene = !!f; if (f) CMF.fecha = (f.updated_at || f.created_at || '').slice(0, 10); } catch (e) { /* sin conexión */ }
+    } else { try { CMF.tiene = !!localStorage.getItem(LS_CMF); } catch (e) { CMF.tiene = false; } }
+  }
+  async function leerFormato() {
+    if (S.mode === 'remote') { const { data, error } = await sb.storage.from('cuadro-maestro').download('formato.xlsx'); if (error || !data) return null; return await data.arrayBuffer(); }
+    try { const b = atob(localStorage.getItem(LS_CMF) || ''); if (!b) return null; const u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u.buffer; } catch (e) { return null; }
+  }
+
+  // ── Importar ──
+  async function prepararImportacion(file) {
+    toast('Leyendo el Cuadro Maestro…');
+    const X = await cargarXLSX(), buf = await file.arrayBuffer();
+    const L = leerCuadro(X, buf);
+    const existentes = new Map();
+    S.data.programas.forEach(p => {
+      existentes.set(claveProg(p.nombre, p.fecha_inicio, entidadDe(p)?.nombre, null), p);
+      if (p.orden_interna) existentes.set(claveProg(null, null, null, p.orden_interna), p);
+      if (p.cm_raw?._k) existentes.set(p.cm_raw._k, p);
+    });
+    const vistos = {};
+    const items = L.filas.map(r => {
+      const x = filaAPrograma(r, L.year);
+      let k = claveProg(x.campos.nombre, x.campos.fecha_inicio, x.empresa, null);
+      vistos[k] = (vistos[k] || 0) + 1; if (vistos[k] > 1) k += '#' + vistos[k];
+      x.cm_raw._k = k;
+      x.match = (x.campos.orden_interna && existentes.get(claveProg(null, null, null, x.campos.orden_interna))) || existentes.get(k) || null;
+      return x;
+    });
+    S.imp = { file, buf, L, items };
+    formImportar();
+  }
+  function formImportar() {
+    const { L, items, file } = S.imp;
+    const nuevos = items.filter(x => !x.match), act = items.filter(x => x.match);
+    const c = e => items.filter(x => !x.match && x.campos.estado_cm === e).length;
+    const fila = (n, l, sub) => n ? `<div class="imp-row"><b>${n}</b><span>${l}${sub ? `<small>${sub}</small>` : ''}</span></div>` : '';
+    modal(`<form data-form="importar">
+      ${sheetHead('Importar Cuadro Maestro')}
+      <p class="small muted" style="margin-top:-6px">${esc(file.name)} · hoja ${esc(L.hoja)} · ${plural(items.length, 'programa')}</p>
+      <div class="card pad imp-res">
+        ${fila(c('Iniciado'), 'en curso', 'Con su checklist; lo anterior a hoy queda como hecho')}
+        ${fila(c('Proyección'), 'en proyección o negociación', 'Con su checklist completo')}
+        ${fila(c('Aplazado'), 'aplazados o cancelados', 'Te pregunto cuál es cuál')}
+        ${fila(c('Ejecutado'), 'ya ejecutados', 'Quedan como registro; te pregunto por el cierre de los recientes')}
+        ${fila(act.length, 'ya están en Rumbo', 'Solo se actualizan sus datos del Cuadro Maestro')}
+      </div>
+      <label class="small row" style="margin:12px 0 8px"><input type="checkbox" name="formato" checked> Usar este archivo como formato para exportar (sale igual: hojas, tabla, listas y totales)</label>
+      <label class="small row" style="margin-bottom:12px"><input type="checkbox" name="marcar" checked> En los programas en curso, marcar como hechos los pasos con fecha anterior a hoy</label>
+      <p class="tiny muted">La ruta sale del archivo: ABIERTO es oferta abierta, CERRADO es B2B y las plataformas de aval o Ateneo son aval académico.</p>
+      <div class="sheet-actions"><button type="button" class="btn" data-act="close">Cancelar</button><button class="btn primary">Importar ${plural(items.length, 'programa')}</button></div>
+    </form>`);
+  }
+  async function ejecutarImportacion(opc) {
+    const { items, file, buf } = S.imp, t = today();
+    const rutas = Object.fromEntries(S.data.rutas.map(r => [r.clave, r]));
+    const entCache = {};
+    const entidadId = async nombre => {
+      if (!nombre) return null; const k = norm(nombre);
+      if (entCache[k]) return entCache[k];
+      const e = entidadPorNombre(nombre) || await db.insert('entidades', { nombre });
+      return (entCache[k] = e.id);
+    };
+    let nNuevos = 0, nAct = 0, nHechos = 0;
+    const pasos = [];
+    for (const x of items) {
+      const entidad_id = await entidadId(x.empresa);
+      if (x.match) {
+        const p = x.match, patch = {};
+        Object.entries(x.campos).forEach(([k, v]) => { if (v !== null && v !== undefined && v !== '' && !['estado', 'estado_cm'].includes(k)) patch[k] = v; });
+        if (entidad_id && rutas[x.ruta]?.clave !== 'abierta') patch.entidad_id = entidad_id;
+        patch.estado_cm = x.campos.estado_cm; patch.estado = p.estado === 'activo' && x.campos.estado === 'cerrado' && itemsDe(p.id).some(abierto) ? 'activo' : x.campos.estado;
+        patch.cm_raw = x.cm_raw; patch.actualizado = nowIso();
+        await db.update('programas', p.id, patch); nAct++;
+        continue;
+      }
+      const ruta = rutas[x.ruta] || rutas.cerrado;
+      const p = await db.insert('programas', { ...x.campos, ruta_id: ruta.id, entidad_id: x.ruta === 'abierta' ? null : entidad_id, modulos: [], es_nuevo: true, prioridad: 'media',
+        cm_raw: x.cm_raw, cm_pendiente: x.pend, actualizado: nowIso() });
+      nNuevos++;
+      if (x.campos.estado === 'cerrado') continue; // ejecutado: queda como registro
+      const its = generarItems(p, [], true);
+      if (x.campos.estado_cm === 'Iniciado' && opc.marcar) {
+        const fs = fasesDe(p), ej = Math.max(fs.indexOf('Ejecución'), fs.indexOf('Operación'));
+        its.forEach(i => {
+          const antes = ej > 0 && fs.indexOf(i.fase) < ej, vencido = i.fecha_limite && i.fecha_limite < t;
+          if (i.estado === 'pendiente' && (antes || vencido)) { i.estado = 'hecho'; i.fecha_hecho = i.fecha_limite && i.fecha_limite < t ? i.fecha_limite : t; i.recordar_at = null; i.nota = 'Marcado al importar el Cuadro Maestro'; nHechos++; }
+        });
+      }
+      its.forEach(i => { if (i.estado === 'pendiente' && i.fecha_limite && i.fecha_limite < t && x.campos.estado_cm !== 'Iniciado') i.recordar_at = null; });
+      pasos.push(...its);
+    }
+    if (pasos.length) await db.insert('items', pasos);
+    if (opc.formato) await guardarFormato(file, buf);
+    S.imp = null;
+    return { nNuevos, nAct, nHechos };
+  }
+
+  // ── Acompañamiento: completar lo que falta, programa por programa ──
+  // Lo que el Cuadro Maestro necesita de cada programa (las columnas que en tu archivo siempre van llenas)
+  function faltantesCM(p) {
+    const f = [], ab = esAbierta(p), corre = ['Iniciado', 'Ejecutado'].includes(p.estado_cm);
+    if (!ab && !p.entidad_id) f.push('empresa');
+    if (!p.fecha_inicio) f.push('fecha_inicio');
+    if (!p.fecha_fin) f.push('fecha_fin');
+    if (!p.tipo_programa) f.push('tipo_programa');
+    if (!p.facultad) f.push('facultad');
+    if (!p.programa_academico) f.push('programa_academico');
+    if (!p.modalidad) f.push('modalidad');
+    if (!p.plataforma) f.push('plataforma');
+    if (!p.horas) f.push('horas');
+    if (ab ? !p.valor_persona : !p.valor_total) f.push('valor');
+    if (corre && (p.participantes === null || p.participantes === undefined || p.participantes === '')) f.push('participantes');
+    if (!p.director) f.push('director');
+    if (corre && !p.orden_interna) f.push('orden_interna');
+    return f;
+  }
+  const ETQ_CM = { empresa: 'Empresa', fecha_inicio: 'Fecha de inicio', fecha_fin: 'Fecha de fin', tipo_programa: 'Tipo de programa', facultad: 'Facultad', programa_academico: 'Programa',
+    modalidad: 'Modalidad', plataforma: 'Plataforma', horas: 'Intensidad horaria', valor: 'Valor', participantes: 'Matriculados', director: 'Director', orden_interna: 'Orden interna' };
+  const TOTAL_CM = p => 11 + (['Iniciado', 'Ejecutado'].includes(p.estado_cm) ? 2 : 0) - (esAbierta(p) ? 1 : 0);
+  const porCompletar = () => S.data.programas.filter(p => p.cm_pendiente || ((p.estado === 'activo' || p.estado === 'pausa') && faltantesCM(p).length))
+    .sort((a, b) => (!!b.cm_pendiente - !!a.cm_pendiente) || ((a.estado_cm === 'Iniciado' ? 0 : 1) - (b.estado_cm === 'Iniciado' ? 0 : 1)) || (a.fecha_inicio || '9999').localeCompare(b.fecha_inicio || '9999'));
+  function viewCompletar() {
+    const cola = porCompletar(), total = S.compTotal || cola.length;
+    const head = `<div class="page-head"><button class="btn ghost back" data-act="nav" data-to="inicio">${ICON.back}<span>Salir</span></button></div>`;
+    const p = cola.find(x => !(S.compSaltados || []).includes(x.id));
+    if (!p) return head + `<div class="card pad empty-ok"><span class="kpi-ic green">${ICON.check}</span><h1>Cuadro Maestro al día</h1>
+      <p class="muted">${cola.length ? `Saltaste ${plural(cola.length, 'programa')}; puedes retomarlos cuando quieras.` : 'Todos tus programas tienen los datos que pide el Cuadro Maestro.'}</p>
+      <div class="row" style="gap:8px;justify-content:center">${cola.length ? '<button class="btn" data-act="comp-reset">Retomar saltados</button>' : ''}<button class="btn primary" data-act="export-cm">${ICON.download}<span>Exportar Cuadro Maestro</span></button></div></div>`;
+    const hechos = Math.max(0, total - cola.length), pct = total ? Math.round(hechos * 100 / total) : 0;
+    const falt = faltantesCM(p), ab = esAbierta(p);
+    const pregunta = p.cm_pendiente === 'aplazado' ? `<div class="comp-q"><b>En el archivo dice "aplazado o cancelado". ¿Cuál es?</b>
+        ${seg('q_estado', [['Aplazado', 'Aplazado'], ['Cancelado', 'Cancelado']], 'Aplazado')}
+        <div class="two" data-show="Aplazado">${fld('Nuevo inicio <span class="muted">(si ya lo sabes)</span>', inp('q_inicio', '', 'type="date"'))}${fld('Nuevo fin', inp('q_fin', '', 'type="date"'))}</div></div>`
+      : p.cm_pendiente === 'cierre' ? `<div class="comp-q"><b>Terminó el ${fmtDate(p.fecha_fin)}. ¿Ya hiciste el cierre financiero?</b>
+        ${seg('q_cierre', [['si', 'Sí, ya cerró'], ['no', 'No, falta']], 'no')}<p class="tiny muted" style="margin:6px 0 0">Si falta, Rumbo te arma los pasos del cierre y la liquidación.</p></div>` : '';
+    const campo = k => {
+      if (k === 'empresa') return fld('Empresa', inp('empresa', '', 'list="dl-ent" autocomplete="off"'));
+      if (k === 'fecha_inicio') return fld('Fecha de inicio', inp('fecha_inicio', '', 'type="date"'));
+      if (k === 'fecha_fin') return fld('Fecha de fin', inp('fecha_fin', '', 'type="date"'));
+      if (k === 'tipo_programa') return fld('Tipo de programa', seg('tipo_programa', TIPOS_CM, '1'));
+      if (k === 'facultad') return fld('Facultad', `<select class="input" name="facultad">${opts(FACULTADES, '', 'Elegir…')}</select>`);
+      if (k === 'programa_academico') return fld('Programa', inp('programa_academico', '', 'list="dl-progcm" autocomplete="off" placeholder="Ej.: Enfermería"'));
+      if (k === 'modalidad') return fld('Modalidad', seg('modalidad', MODALIDADES.map(m => [m, m.replace(' (virtual + presencial)', '')]), ''));
+      if (k === 'plataforma') return fld('Plataforma', seg('plataforma', PLATAFORMAS.map(m => [m, m]), ''));
+      if (k === 'horas') return fld('Intensidad horaria', inp('horas', '', 'type="number" min="0" step="any" inputmode="decimal"'));
+      if (k === 'valor') return fld(ab ? 'Valor por persona (COP)' : 'Valor del programa (COP)', inp('valor', '', 'inputmode="numeric"'));
+      if (k === 'participantes') return fld('Matriculados', inp('participantes', '', 'type="number" min="0" inputmode="numeric"'));
+      if (k === 'director') return fld('Nombre del director', inp('director', '', 'autocomplete="off"'));
+      if (k === 'orden_interna') return fld('Orden interna', inp('orden_interna', '', 'inputmode="numeric"'));
+      return '';
+    };
+    const ents = [...S.data.entidades].sort((a, b) => a.nombre.localeCompare(b.nombre));
+    return `${head}
+      <div class="comp-top"><div class="row between"><b>Completar Cuadro Maestro</b><span class="small muted">${hechos + 1} de ${total}</span></div><div class="bar"><i style="width:${pct}%"></i></div></div>
+      <form class="card pad comp" data-form="completar" data-id="${p.id}">
+        <div class="row" style="gap:6px;flex-wrap:wrap"><span class="pill route" style="--rc:${COL_RUTA[rutaDe(p)?.clave] || 'var(--ink-3)'}">${esc(rutaDe(p)?.nombre || '')}</span><span class="pill">${esc(p.estado_cm || 'Proyección')}</span></div>
+        <h2 class="comp-name">${esc(p.nombre)}</h2>
+        <p class="small muted" style="margin:0 0 14px">${esc(empresaTxt(p))}${p.fecha_inicio ? ' · ' + fmtDate(p.fecha_inicio) + (p.fecha_fin ? ' a ' + fmtDate(p.fecha_fin) : '') : ''}</p>
+        ${pregunta}
+        ${falt.length ? `<p class="small" style="margin:0 0 10px">Falta${falt.length === 1 ? '' : 'n'} <b>${falt.length}</b> dato${falt.length === 1 ? '' : 's'}. Llena lo que tengas; lo demás puede esperar.</p>${falt.map(campo).join('')}` : ''}
+        <datalist id="dl-ent">${ents.map(e => `<option value="${esc(e.nombre)}">`).join('')}</datalist>
+        <datalist id="dl-progcm">${PROGRAMAS_CM.map(x => `<option value="${esc(x)}">`).join('')}</datalist>
+        <div class="sheet-actions"><button type="button" class="btn" data-act="comp-saltar" data-id="${p.id}">Saltar</button><button class="btn primary">Guardar y seguir</button></div>
+      </form>`;
+  }
+
+  // ── Exportar idéntico: se reescribe solo la tabla de la hoja BD dentro de tu propio archivo ──
+  async function cargarJSZip() {
+    if (window.JSZip) return window.JSZip;
+    await new Promise((ok, ko) => {
+      const sc = document.createElement('script');
+      sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+      sc.onload = ok; sc.onerror = () => ko(new Error('No se pudo cargar el generador del archivo. Revisa la conexión.'));
+      document.head.appendChild(sc);
+    });
+    return window.JSZip;
+  }
+  const xesc = v => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const colNum = L => L.split('').reduce((n, c) => n * 26 + c.charCodeAt(0) - 64, 0);
+  const colLet = n => { let s = ''; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; };
+  const attr = (tag, name) => (tag.match(new RegExp(`\\s${name}="([^"]*)"`)) || [])[1];
+  const conRow = (xml, n) => xml.replace(/(<row\b[^>]*\sr=")\d+(")/, `$1${n}$2`).replace(/(<c\b[^>]*\sr="[A-Z]+)\d+(")/g, `$1${n}$2`);
+  async function exportCM() {
+    const tpl = await leerFormato();
+    if (!tpl) { toast('Primero importa tu Cuadro Maestro en Más; así el archivo sale con tu formato'); return exportXLSX(); }
+    toast('Armando tu Cuadro Maestro…');
+    const JSZip = await cargarJSZip(), zip = await JSZip.loadAsync(tpl);
+    const wbXml = await zip.file('xl/workbook.xml').async('string');
+    const rels = await zip.file('xl/_rels/workbook.xml.rels').async('string');
+    const hojas = [...wbXml.matchAll(/<sheet\b[^>]*>/g)].map(m => ({ tag: m[0], name: attr(m[0], 'name').replace(/&amp;/g, '&'), rid: attr(m[0], 'r:id') }));
+    const idx = Math.max(0, hojas.findIndex(h => /^bd\b/i.test(h.name.trim())));
+    const hoja = hojas[idx];
+    const target = attr((rels.match(new RegExp(`<Relationship\\b[^>]*Id="${hoja.rid}"[^>]*>`)) || [''])[0], 'Target');
+    const sheetPath = 'xl/' + target.replace(/^\/?xl\//, '');
+    let sx = await zip.file(sheetPath).async('string');
+    const srelsPath = sheetPath.replace(/worksheets\//, 'worksheets/_rels/') + '.rels';
+    const srels = zip.file(srelsPath) ? await zip.file(srelsPath).async('string') : '';
+    const tRel = (srels.match(/<Relationship\b[^>]*relationships\/table"[^>]*>/) || srels.match(/<Relationship\b[^>]*Target="[^"]*tables\/[^"]*"[^>]*>/) || [''])[0];
+    const tablePath = tRel ? 'xl/' + attr(tRel, 'Target').replace(/^\.\.\//, '') : null;
+    let tx = tablePath ? await zip.file(tablePath).async('string') : null;
+    // Encabezado, columnas y totales según la tabla
+    const ref = tx ? attr(tx.match(/<table\b[^>]*>/)[0], 'ref') : null;
+    const [, c1, r1, c2, r2] = (ref || 'A2:AB98').match(/([A-Z]+)(\d+):([A-Z]+)(\d+)/);
+    const conTot = tx ? Number(attr(tx.match(/<table\b[^>]*>/)[0], 'totalsRowCount') || 0) : 0;
+    const hdr = Number(r1), oldTot = conTot ? Number(r2) : Number(r2) + 1, first = hdr + 1, nCols = colNum(c2) - colNum(c1) + 1, base = colNum(c1);
+    const nombres = tx ? [...tx.matchAll(/<tableColumn\b[^>]*\sname="([^"]*)"/g)].map(m => m[1].replace(/_x000a_/gi, '\n').replace(/&amp;/g, '&')) : [];
+    const claves = nombres.map(cmClave);
+    // Filas del archivo original
+    const sd0 = sx.indexOf('<sheetData'), sd1 = sx.indexOf('</sheetData>');
+    const sdOpen = sx.slice(sd0, sx.indexOf('>', sd0) + 1);
+    const filas = [...sx.slice(sx.indexOf('>', sd0) + 1, sd1).matchAll(/<row\b[^>]*?(?:\/>|>[\s\S]*?<\/row>)/g)].map(m => ({ xml: m[0], r: Number(attr(m[0].match(/<row\b[^>]*>/)[0], 'r')) }));
+    const fila = n => filas.find(f => f.r === n);
+    const estilo = {};
+    const modelo = fila(first) || fila(first + 1);
+    if (modelo) for (const m of modelo.xml.matchAll(/<c\b[^>]*\sr="([A-Z]+)\d+"[^>]*>/g)) estilo[m[1]] = attr(m[0], 's');
+    const rowAttrs = f => (f.xml.match(/<row\b([^>]*?)\/?>/)[1]).replace(/\sr="\d+"/, '');
+    const ps = programasCM();
+    const newTot = first + ps.length, delta = newTot - oldTot;
+    const celda = (L, n, v, est) => {
+      const st = (est && est[L]) || estilo[L], s = st ? ` s="${st}"` : '';
+      if (v === null || v === undefined || v === '') return `<c r="${L}${n}"${s}/>`;
+      if (typeof v === 'number' && isFinite(v)) return `<c r="${L}${n}"${s}><v>${v}</v></c>`;
+      return `<c r="${L}${n}"${s} t="inlineStr"><is><t xml:space="preserve">${xesc(v)}</t></is></c>`;
+    };
+    const valores = ps.map(cmValores);
+    const datos = ps.map((p, k) => {
+      const n = first + k, orig = p.cm_raw?._row ? fila(p.cm_raw._row) : null;
+      const at = (orig ? rowAttrs(orig) : modelo ? rowAttrs(modelo) : ` spans="1:${nCols}"`);
+      const est = {}; if (orig) for (const m of orig.xml.matchAll(/<c\b[^>]*\sr="([A-Z]+)\d+"[^>]*>/g)) est[m[1]] = attr(m[0], 's');
+      const cells = claves.map((key, j) => celda(colLet(base + j), n, key ? valores[k][key] : null, est)).join('');
+      return `<row r="${n}"${at}>${cells}</row>`;
+    }).join('');
+    // Totales: mismas fórmulas, con el valor ya calculado
+    let tot = fila(oldTot) ? conRow(fila(oldTot).xml, newTot) : '';
+    if (tot) tot = tot.replace(/<c\b([^>]*?)>(<f>([\s\S]*?)<\/f>)(<v>[^<]*<\/v>)?<\/c>/g, (all, a, f, fx) => {
+      const m = fx.replace(/&#10;|\n/g, '\n').match(/SUBTOTAL\((\d+),\s*[^\[]*\[([^\]]+)\]/);
+      if (!m) return `<c${a}>${f}</c>`;
+      const j = nombres.findIndex(x => norm(x) === norm(m[2].replace(/&amp;/g, '&'))), key = claves[j];
+      const vals = valores.map(v => v[key]).filter(v => v !== null && v !== undefined && v !== '');
+      const val = m[1] === '103' || m[1] === '3' ? vals.length : vals.reduce((s, v) => s + (typeof v === 'number' ? v : 0), 0);
+      return `<c${a}>${f}<v>${val}</v></c>`;
+    });
+    const antes = filas.filter(f => f.r < first).map(f => f.xml).join('');
+    const despues = filas.filter(f => f.r > oldTot).map(f => conRow(f.xml, f.r + delta)).join('');
+    sx = sx.slice(0, sd0) + sdOpen + antes + datos + tot + despues + sx.slice(sd1);
+    // Rangos que dependen del tamaño de la tabla
+    const lastData = newTot - 1, ajusta = tokens => [...new Set(tokens.split(/\s+/).filter(Boolean).map(tk => {
+      const m = tk.match(/^([A-Z]+)(\d+)(?::([A-Z]+)(\d+))?$/); if (!m) return tk;
+      const a = Number(m[2]), b = Number(m[4] || m[2]);
+      if (a >= first && a < oldTot) return `${m[1]}${first}:${m[3] || m[1]}${lastData}`;
+      if (a > oldTot) return `${m[1]}${a + delta}${m[3] ? `:${m[3]}${b >= 1048000 ? b : b + delta}` : ''}`;
+      return tk;
+    }))].join(' ');
+    sx = sx.replace(/<xm:sqref>([^<]*)<\/xm:sqref>/g, (a, t) => `<xm:sqref>${ajusta(t)}</xm:sqref>`)
+      .replace(/(<conditionalFormatting\b[^>]*\ssqref=")([^"]*)(")/g, (a, x, t, z) => x + ajusta(t) + z)
+      .replace(/(<dataValidation\b[^>]*\ssqref=")([^"]*)(")/g, (a, x, t, z) => x + ajusta(t) + z);
+    const maxR = Math.max(newTot, ...filas.map(f => f.r > oldTot ? f.r + delta : f.r));
+    sx = sx.replace(/<dimension ref="([A-Z]+)\d+:([A-Z]+)\d+"\/>/, (a, x, y) => `<dimension ref="${x}1:${y}${maxR}"/>`);
+    zip.file(sheetPath, sx);
+    if (tx) {
+      tx = tx.replace(/(<table\b[^>]*\sref=")[^"]*(")/, `$1${c1}${hdr}:${c2}${conTot ? newTot : lastData}$2`).replace(/(<autoFilter\b[^>]*\sref=")[^"]*(")/, `$1${c1}${hdr}:${c2}${lastData}$2`);
+      zip.file(tablePath, tx);
+    }
+    // Libro: filtro de la hoja, recálculo al abrir y sin la cadena de cálculo vieja
+    let wb2 = wbXml.replace(new RegExp(`(<definedName\\b[^>]*localSheetId="${idx}"[^>]*>[^<]*?\\$[A-Z]+\\$)\\d+(:\\$[A-Z]+\\$)\\d+`), `$1${hdr}$2${lastData}`);
+    wb2 = /<calcPr\b[^>]*fullCalcOnLoad/.test(wb2) ? wb2 : wb2.replace(/<calcPr\b/, '<calcPr fullCalcOnLoad="1"');
+    zip.file('xl/workbook.xml', wb2);
+    if (zip.file('xl/calcChain.xml')) {
+      zip.remove('xl/calcChain.xml');
+      zip.file('xl/_rels/workbook.xml.rels', rels.replace(/<Relationship\b[^>]*calcChain[^>]*\/>/, ''));
+      const ct = await zip.file('[Content_Types].xml').async('string');
+      zip.file('[Content_Types].xml', ct.replace(/<Override\b[^>]*calcChain[^>]*\/>/, ''));
+    }
+    const out = await zip.generateAsync({ type: 'arraybuffer', compression: 'DEFLATE' });
+    const d = new Date(), nombre = `Cuadro_maestro_SF_${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}.xlsx`;
+    download(nombre, out, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    toast(`Cuadro Maestro listo: ${plural(ps.length, 'programa')}`);
+  }
+
+  // Reporte de seguimiento en Excel: hoja BD (mismas columnas, para pegar), seguimiento por programa, hitos y pendientes
   async function cargarXLSX() {
     if (window.XLSX) return window.XLSX;
     await new Promise((ok, ko) => {
@@ -2059,16 +2452,10 @@
     const num = v => (v === null || v === undefined || v === '') ? '' : Number(v);
     const mes = d => d ? MESES_CM[parse(d).getMonth()] : '', dia = d => d ? parse(d).getDate() : '';
     const fx = d => d ? parse(d) : '';
-    const bd = [['Gestor', 'Línea de negocio', 'Tipo', 'Mes inicio', 'Día inicio', 'Mes fin', 'Día fin', 'Orden interna', 'Nombre del programa', 'Empresa', 'Estado',
-      'Matriculados', 'Intensidad horaria', 'Valor programa', 'Ingresos', 'Facturado', 'Facultad UEB', 'Programa', 'Nombre del director', 'Modalidad',
-      'Plataforma', 'Tipo programa', 'Segmento', 'Trimestre'],
-      ...ps.map(p => [GESTOR, LINEA, esAbierta(p) ? 'ABIERTO' : 'CERRADO', mes(p.fecha_inicio), dia(p.fecha_inicio), mes(p.fecha_fin), dia(p.fecha_fin),
-        p.orden_interna || '', p.nombre, esAbierta(p) ? 'OFERTA ABIERTA' : (entidadDe(p)?.nombre || ''), p.estado_cm || 'Proyección',
-        num(p.participantes), num(p.horas), num(esAbierta(p) ? p.valor_persona : p.valor_total), ingresosCM(p) || '', facturadoCM(p) || '', p.facultad || '', p.programa_academico || '',
-        p.director || '', p.modalidad || '', p.plataforma || '', num(p.tipo_programa), p.segmento || '', trimestreCM(p)])];
+    const bd = [CM_HEAD, ...programasCM().map(cmFila)];
     const seg = [['Programa', 'Empresa', 'Ruta', 'Estado CM', 'Fase actual', 'Avance %', 'Hitos cumplidos', 'Próximo hito', 'Fecha próximo hito', 'Semáforo', 'Estado declarado', 'Nota de estado', 'Inicio', 'Fin', 'Ingresos', 'Datos CM por completar'],
       ...ps.map(p => { const r = resumenHitos(p); return [p.nombre, empresaTxt(p), rutaDe(p)?.nombre || '', p.estado_cm || 'Proyección', faseActual(p), avance(p).pct, r.n ? `${r.d}/${r.n}` : '',
-        r.sig?.hito || '', fx(r.sig?.fecha_limite), SEM_TXT[semaforo(p)] || ESTADOS_PROG[p.estado] || '', SALUD[p.salud]?.[0] || '', p.salud_nota || '', fx(p.fecha_inicio), fx(p.fecha_fin), ingresosCM(p) || '', faltantesCM(p).join(', ')]; })];
+        r.sig?.hito || '', fx(r.sig?.fecha_limite), SEM_TXT[semaforo(p)] || ESTADOS_PROG[p.estado] || '', SALUD[p.salud]?.[0] || '', p.salud_nota || '', fx(p.fecha_inicio), fx(p.fecha_fin), ingresosCM(p) || '', faltantesCM(p).map(x => ETQ_CM[x] || x).join(', ')]; })];
     const hit = [['Programa', 'Hito', 'Responsable', 'Fecha meta', 'Estado', 'Cumplido el'],
       ...ps.flatMap(p => hitosDe(p).map(i => [p.nombre, i.hito, i.responsable || 'Yo', fx(i.fecha_limite), { ok: 'Cumplido', late: 'Atrasado', fut: 'Pendiente' }[estadoHito(i)], fx(i.fecha_hecho)]))];
     const pen = [['Programa', 'Fase', 'Paso', 'Responsable', 'Estado', 'Fecha límite', 'Planeado para', 'Seguimiento', 'Hito'],
@@ -2083,12 +2470,12 @@
       Object.keys(ws).forEach(k => { const c = ws[k]; if (c && c.t === 'n' && k[0] !== '!' && rows[0][X.utils.decode_cell(k).c] && /valor|ingresos|facturado/i.test(rows[0][X.utils.decode_cell(k).c])) c.z = '"$"#,##0'; });
       X.utils.book_append_sheet(wb, ws, nombre);
     };
-    hoja(bd, 'BD', [22, 14, 10, 11, 9, 11, 8, 14, 46, 28, 12, 12, 10, 15, 15, 15, 18, 24, 26, 18, 18, 10, 14, 9]);
+    hoja(bd, 'BD', [18, 22, 10, 11, 6, 11, 6, 12, 14, 46, 28, 26, 11, 10, 15, 15, 15, 16, 20, 26, 12, 20, 22, 12, 8, 20, 9, 9]);
     hoja(seg, 'Seguimiento', [46, 26, 16, 12, 16, 9, 10, 26, 12, 10, 14, 40, 11, 11, 15, 40]);
     hoja(hit, 'Hitos', [46, 28, 24, 12, 11, 12]);
     hoja(pen, 'Pendientes', [40, 16, 60, 24, 11, 12, 12, 12, 22]);
     const buf = X.write(wb, { type: 'array', bookType: 'xlsx' });
-    download(`cuadro-maestro-${today()}.xlsx`, buf, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    download(`reporte-seguimiento-${today()}.xlsx`, buf, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     toast('Excel listo: BD, Seguimiento, Hitos y Pendientes');
   }
   async function importJSON(file) {
@@ -2248,7 +2635,7 @@
       form.querySelector(`input[name="${el.dataset.name}"]`).value = el.dataset.v;
       el.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === el));
       if (form._tocado) form._tocado.add(el.dataset.name);
-      if (['estado', 'tipo'].includes(el.dataset.name)) applyShow(form, el.dataset.v);
+      if (['estado', 'tipo', 'q_estado'].includes(el.dataset.name)) applyShow(form, el.dataset.v);
     },
     'seg-ruta'(el) {
       const form = el.closest('form');
@@ -2292,6 +2679,9 @@
     },
     'export-csv': exportCSV,
     'export-xlsx': exportXLSX,
+    'export-cm': exportCM,
+    'comp-saltar'(el) { S.compSaltados = [...(S.compSaltados || []), el.dataset.id]; render(); window.scrollTo(0, 0); },
+    'comp-reset'() { S.compSaltados = []; S.compTotal = porCompletar().length; render(); },
     'export-json': () => download(`rumbo-respaldo-${today()}.json`, JSON.stringify(S.data, null, 1), 'application/json'),
     async logout() { await sb.auth.signOut(); S.user = null; S.data = Object.fromEntries(TABLES.map(t => [t, []])); closeModal(); render(); },
   };
@@ -2313,6 +2703,16 @@
     await entrar(r.data.user);
   };
 
+  // Valores viejos de Rumbo al vocabulario del Cuadro Maestro (una sola vez)
+  async function normalizarCM() {
+    const MOD = { 'Virtual sincrónica': 'Virtual', 'Virtual asincrónica': 'Virtual', 'Híbrida': 'Híbrido (virtual + presencial)' };
+    for (const p of S.data.programas) {
+      const patch = {};
+      if (MOD[p.modalidad]) patch.modalidad = MOD[p.modalidad];
+      if (FAC_VIEJAS[p.facultad]) patch.facultad = FAC_VIEJAS[p.facultad];
+      if (Object.keys(patch).length) await db.update('programas', p.id, patch);
+    }
+  }
   // El día del inicio, el programa pasa a Iniciado en el Cuadro Maestro (si la apertura ya se confirmó o no requiere decisión).
   async function iniciarProgramasDelDia() {
     const t = today();
@@ -2366,6 +2766,53 @@
 
   // ───────────── Formularios ─────────────
   const FORMS = {
+    async importar(d, f) {
+      f.querySelector('button.primary').textContent = 'Importando…';
+      const r = await ejecutarImportacion({ formato: d.formato === 'on', marcar: d.marcar === 'on' });
+      closeModal(); S.compSaltados = []; S.compTotal = porCompletar().length;
+      await estadoFormato();
+      modal(`${sheetHead('Cuadro Maestro importado')}
+        <div class="card pad imp-res">
+          <div class="imp-row"><b>${r.nNuevos}</b><span>programas nuevos en Rumbo</span></div>
+          ${r.nAct ? `<div class="imp-row"><b>${r.nAct}</b><span>programas actualizados</span></div>` : ''}
+          ${r.nHechos ? `<div class="imp-row"><b>${r.nHechos}</b><span>pasos marcados como hechos<small>Los anteriores a hoy en los programas en curso</small></span></div>` : ''}
+        </div>
+        <p class="small" style="margin:14px 0">${S.compTotal ? `Hay <b>${plural(S.compTotal, 'programa')}</b> con datos o preguntas pendientes. Te los muestro uno por uno, solo con lo que falta.` : 'Todos los programas quedaron con los datos completos.'}</p>
+        <div class="sheet-actions"><button type="button" class="btn" data-act="close">Más tarde</button>${S.compTotal ? '<button class="btn primary" data-act="nav" data-to="completar">Completar ahora</button>' : ''}</div>`);
+      render();
+    },
+    async completar(d, f) {
+      const p = byId('programas', f.dataset.id), patch = {};
+      ['fecha_inicio', 'fecha_fin', 'tipo_programa', 'facultad', 'programa_academico', 'modalidad', 'plataforma', 'director', 'orden_interna'].forEach(k => { if (d[k] && String(d[k]).trim()) patch[k] = String(d[k]).trim(); });
+      ['horas', 'participantes'].forEach(k => { if (d[k] !== undefined && d[k] !== '') patch[k] = Number(d[k]); });
+      if (d.valor) patch[esAbierta(p) ? 'valor_persona' : 'valor_total'] = num(d.valor);
+      if (d.empresa && d.empresa.trim()) patch.entidad_id = (entidadPorNombre(d.empresa) || await db.insert('entidades', { nombre: d.empresa.trim() })).id;
+      if (patch.tipo_programa && !p.tipo_cm) patch.tipo_cm = TIPO_X[patch.tipo_programa];
+      if (p.cm_pendiente === 'aplazado') {
+        patch.cm_pendiente = null;
+        if (d.q_estado === 'Cancelado') Object.assign(patch, { estado_cm: 'Cancelado', estado: 'perdido' });
+        else { Object.assign(patch, { estado_cm: 'Aplazado', estado: 'activo' }); if (d.q_inicio) { patch.fecha_inicio = d.q_inicio; if (d.q_fin) patch.fecha_fin = d.q_fin; } }
+      }
+      let nuevos = 0;
+      if (p.cm_pendiente === 'cierre') {
+        patch.cm_pendiente = null;
+        if (d.q_cierre === 'no') {
+          patch.estado = 'activo';
+          const its = generarItems({ ...p, ...patch }, [], true).filter(i => ['Cierre financiero', 'Liquidación'].includes(i.fase));
+          await db.insert('items', its); nuevos = its.length;
+        }
+      }
+      patch.actualizado = nowIso();
+      const fechas = (patch.fecha_inicio && patch.fecha_inicio !== p.fecha_inicio) || (patch.fecha_fin && patch.fecha_fin !== p.fecha_fin);
+      await db.update('programas', p.id, patch);
+      if (fechas) await recalcular(byId('programas', p.id));
+      await aplicarCondiciones(byId('programas', p.id));
+      if (d.q_estado === 'Cancelado') await db.insert('bitacora', { programa_id: p.id, fecha: today(), tipo: 'Decisión', resumen: 'Cancelado (según el Cuadro Maestro).', proxima_accion: null });
+      const sigue = faltantesCM(byId('programas', p.id)).length;
+      if (sigue && !(S.compSaltados || []).includes(p.id)) S.compSaltados = [...(S.compSaltados || []), p.id];
+      render(); window.scrollTo(0, 0);
+      toast(nuevos ? `Guardado. Agregué ${plural(nuevos, 'paso')} de cierre y liquidación` : sigue ? `Guardado. Quedan ${plural(sigue, 'dato')} para después` : 'Guardado');
+    },
     async 'acc-libre'(d) { const t = (d.texto || '').trim(); closeModal(); setTimeout(() => t ? formCaptura({ texto: t }) : formCaptura(), 200); },
     async login(d) {
       const msg = $('#login-msg'); msg.textContent = '';
@@ -2395,6 +2842,7 @@
         facultad: d.facultad, modalidad: d.modalidad, horas: d.horas, plataforma: d.plataforma, director: d.director, programa_academico: d.programa_academico,
         participantes: d.participantes, valor_total: d.valor_total, valor_persona: d.valor_persona, porcentaje_aval: d.porcentaje_aval,
         orden_interna: d.orden_interna, margen: d.margen, segmento: d.segmento, ingresos: d.ingresos, notas: d.notas,
+        director_cedula: d.director_cedula, tipo_cm: d.tipo_cm, linea_cm: d.linea_cm, facturado: d.facturado, acuerdo_consejo: d.acuerdo_consejo,
       });
       if (!abierta) row.entidad_id = entidad_id;
       row.modulos = mods; row.actualizado = nowIso(); row.es_nuevo = d.es_nuevo !== '0';
@@ -2611,6 +3059,7 @@
       await db.update('semanas', s.id, { objetivos }); render();
     },
     async import(el) { if (el.files[0]) await importJSON(el.files[0]); },
+    async 'import-cm'(el) { const f = el.files[0]; el.value = ''; if (f) await prepararImportacion(f); },
   };
 
   // ───────────── Eventos ─────────────
@@ -2729,6 +3178,8 @@
       }
       S.ready = true;
       iniciarProgramasDelDia().then(() => render()).catch(fail);
+      normalizarCM().catch(fail);
+      estadoFormato().then(() => { if (S.view.name === 'mas') render(); });
       avState().then(() => { if (AV.on) render(); });
       iaEstado().then(() => { if (IA.on && S.view.name === 'mas') render(); });
     } catch (err) {

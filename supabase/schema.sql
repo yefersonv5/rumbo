@@ -212,3 +212,13 @@ alter table items add column if not exists hito text;
 -- La llave se guarda con guardar_llave_ia(llave, limite) en app_secrets y la app no puede leerla.
 -- estado_ia() devuelve si está configurada, el tope y el uso del mes; quitar_llave_ia() la desactiva.
 create table if not exists ai_uso (id uuid primary key default gen_random_uuid(), created_at timestamptz default now(), modo text, tokens_in int default 0, tokens_out int default 0);
+
+-- Cuadro Maestro: fila original importada (para exportar idéntico) y campos de la hoja BD
+alter table programas add column if not exists cm_raw jsonb;
+alter table programas add column if not exists director_cedula text;
+alter table programas add column if not exists acuerdo_consejo text;
+alter table programas add column if not exists facturado numeric;
+alter table programas add column if not exists linea_cm text;
+alter table programas add column if not exists tipo_cm text;
+alter table programas add column if not exists cm_pendiente text;   -- aplazado | cierre: preguntas del acompañamiento
+-- Tu archivo como formato de exportación: bucket privado "cuadro-maestro" (solo el dueño), archivo formato.xlsx
