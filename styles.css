@@ -517,3 +517,9 @@ input[type="date"].input::-webkit-datetime-edit { padding: 0; }
 @media (max-width: 420px) { .li .hr { display: none; } }
 .chip { flex: none; white-space: nowrap; }
 .section-head { flex-wrap: wrap; gap: 4px 10px; }
+
+/* Decisión de apertura */
+.decision h2 { font-size: 16px; }
+.decision.due { border-color: color-mix(in srgb, var(--amber) 45%, var(--line)); }
+.dec-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+.dec-btns .btn { width: 100%; }

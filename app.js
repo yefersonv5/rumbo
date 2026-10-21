@@ -5,7 +5,8 @@
   const TABLES = ['rutas', 'modulos', 'plantilla_items', 'entidades', 'contactos', 'programas', 'items', 'bitacora', 'documentos', 'facturacion'];
   const ESTADOS_ITEM = { pendiente: 'Pendiente', en_curso: 'En curso', esperando: 'Esperando', hecho: 'Hecho', no_aplica: 'No aplica' };
   const ESTADOS_PROG = { activo: 'Activo', pausa: 'En pausa', cerrado: 'Cerrado', perdido: 'Perdido' };
-  const ACTORES = ['Yo', 'Cliente', 'Facultad', 'Financiera', 'Docente', 'Proveedor', 'Mercadeo', 'Jurídica', 'Dirección EC'];
+  // Responsables por cargo (nunca nombres propios)
+  const ACTORES = ['Yo', 'Asistente administrativa', 'Auxiliar administrativa', 'Director del programa', 'Gestor de facultad', 'Gestor de comunicaciones', 'Presupuestos', 'Finanzas', 'DIDE', 'Gerente administrativo', 'Secretaría de la división', 'Cliente', 'Proveedor', 'Docente', 'Financiera', 'Facultad', 'Jurídica', 'Dirección EC'];
   const TIPOS = ['Curso', 'Diplomado', 'Seminario', 'Taller', 'Congreso', 'Jornada', 'Simposio', 'Foro', 'Microcredencial', 'Rotación', 'Certificación', 'Aval'];
   const FACULTADES = ['Enfermería', 'Medicina', 'Odontología', 'Psicología', 'Ciencias Económicas y Administrativas', 'Ingeniería', 'Educación', 'Otra'];
   const MODALIDADES = ['Virtual sincrónica', 'Virtual asincrónica', 'Presencial', 'Híbrida'];
@@ -21,12 +22,12 @@
   // Cuadro Maestro (hoja BD): valores fijos de la línea y listas cerradas
   const GESTOR = 'Yeferson Vargas González', LINEA = 'Salud y Farma';
   const ESTADOS_CM = ['Proyección', 'Negociación', 'Iniciado', 'Ejecutado', 'Aplazado', 'Cancelado'];
-  const CM_A_ESTADO = { 'Proyección': 'activo', 'Negociación': 'activo', 'Iniciado': 'activo', 'Ejecutado': 'cerrado', 'Aplazado': 'pausa', 'Cancelado': 'perdido' };
+  const CM_A_ESTADO = { 'Proyección': 'activo', 'Negociación': 'activo', 'Iniciado': 'activo', 'Ejecutado': 'cerrado', 'Aplazado': 'activo', 'Cancelado': 'perdido' };
   const TIPOS_CM = [['1', 'Curso'], ['2', 'Taller'], ['3', 'Diplomado'], ['4', 'Seminario / congreso'], ['5', 'Otro']];
   const TIPO_CM_LARGO = { 1: 'Cursos y cursos especializados (certificaciones)', 2: 'Talleres', 3: 'Diplomados', 4: 'Seminarios, congresos o simposios', 5: 'Otro' };
   const PLATAFORMAS = ['Moodle El Bosque', 'Plataforma del cliente', 'Zoom', 'Teams', 'Presencial', 'Otra'];
   const MESES_CM = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
-  const BUILD = '20261020232937';
+  const BUILD = '20261021000729';
 
   const S = {
     data: Object.fromEntries(TABLES.map(t => [t, []])),
@@ -158,17 +159,41 @@
     S.data = Object.fromEntries(res);
   }
 
+  // Carga las plantillas la primera vez y las reemplaza cuando sube la versión (los programas creados no cambian).
   async function seedIfEmpty() {
-    if (S.data.rutas.length || !window.PLANTILLAS) return;
-    const P = window.PLANTILLAS, items = [];
-    const row = ([fase, titulo, responsable, dias_ref, dias_rel, esencial], orden, ids) =>
-      ({ ...ids, fase, titulo, responsable, dias_ref, dias_rel, esencial, orden });
-    const rutas = P.rutas.map(r => ({ id: uid(), clave: r.clave, nombre: r.nombre, descripcion: r.descripcion, fases: r.fases, orden: r.orden, activa: true }));
+    const P = window.PLANTILLAS;
+    if (!P) return;
+    const ver = P.version || 1;
+    if (S.data.rutas.length && Math.min(...S.data.rutas.map(r => r.version || 1)) >= ver) return;
+    const items = [];
+    const row = (it, orden, ids) => Array.isArray(it)
+      ? { ...ids, fase: it[0], titulo: it[1], responsable: it[2], dias_ref: it[3], dias_rel: it[4], esencial: it[5], orden }
+      : { ...ids, fase: it.f, titulo: it.t, responsable: it.r, dias_ref: it.ref, dias_rel: it.d, esencial: it.e, orden, condicion: it.c, repetir: it.rep, avisar: it.av, clave: it.k };
+    const rutas = P.rutas.map(r => {
+      const ex = S.data.rutas.find(x => x.clave === r.clave);
+      return { id: ex ? ex.id : uid(), clave: r.clave, nombre: r.nombre, descripcion: r.descripcion, fases: r.fases, orden: r.orden, activa: true, version: ver, _ex: !!ex };
+    });
+    const mods = P.modulos.map(m => {
+      const ex = S.data.modulos.find(x => x.clave === m.clave);
+      return { id: ex ? ex.id : uid(), clave: m.clave, nombre: m.nombre, descripcion: m.descripcion, orden: m.orden, activa: true, _ex: !!ex };
+    });
     P.rutas.forEach((r, i) => r.items.forEach((it, j) => items.push(row(it, j, { ruta_id: rutas[i].id, modulo_id: null }))));
-    const mods = P.modulos.map(m => ({ id: uid(), clave: m.clave, nombre: m.nombre, descripcion: m.descripcion, orden: m.orden, activa: true }));
     P.modulos.forEach((m, i) => m.items.forEach((it, j) => items.push(row(it, j, { ruta_id: null, modulo_id: mods[i].id }))));
-    await db.insert('rutas', rutas);
-    await db.insert('modulos', mods);
+    // Reemplazar los pasos de plantilla
+    if (S.data.plantilla_items.length) {
+      if (S.mode === 'remote') { const { error } = await sb.from('plantilla_items').delete().not('id', 'is', null); if (error) throw error; }
+      S.data.plantilla_items = []; persist();
+    }
+    for (const r of rutas) {
+      const { _ex, ...v } = r;
+      if (_ex) await db.update('rutas', r.id, { nombre: v.nombre, descripcion: v.descripcion, fases: v.fases, orden: v.orden, version: v.version });
+      else await db.insert('rutas', v);
+    }
+    for (const m of mods) {
+      const { _ex, ...v } = m;
+      if (_ex) await db.update('modulos', m.id, { nombre: v.nombre, descripcion: v.descripcion, orden: v.orden });
+      else await db.insert('modulos', v);
+    }
     await db.insert('plantilla_items', items);
   }
 
@@ -179,6 +204,7 @@
   const abierto = i => i.estado !== 'hecho' && i.estado !== 'no_aplica';
   const nombreProg = p => p ? (p.nombre_corto || p.nombre) : '';
   const entidadDe = p => p && p.entidad_id ? byId('entidades', p.entidad_id) : null;
+  const empresaTxt = p => rutaDe(p)?.clave === 'abierta' ? 'Oferta abierta' : (entidadDe(p)?.nombre || 'Sin entidad');
 
   function fasesDe(p) {
     const base = (rutaDe(p)?.fases) || [];
@@ -250,10 +276,47 @@
     return n ? S.data.entidades.find(e => e.nombre.trim().toLowerCase() === n) : null;
   }
 
+  // Fecha de un paso según su referencia:
+  //   inicio / fin: días antes (negativo) o después del inicio o del fin del programa
+  //   mitad: punto medio entre inicio y fin
+  //   v20: ventana del 20 al 30 del mes, contada desde 16 días después del fin (después del cierre financiero)
+  function ventana20(desde) {
+    const x = parse(desde), d = x.getDate();
+    if (d < 20) x.setDate(20); else if (d > 30) { x.setDate(1); x.setMonth(x.getMonth() + 1); x.setDate(20); }
+    return isoOf(x);
+  }
   function calcFecha(p, ref, rel) {
     if (!ref || rel === null || rel === undefined) return null;
-    const base = ref === 'inicio' ? p.fecha_inicio : (p.fecha_fin || p.fecha_inicio);
-    return base ? addDays(base, Number(rel)) : null;
+    const ini = p.fecha_inicio, fin = p.fecha_fin || p.fecha_inicio, n = Number(rel);
+    if (ref === 'inicio') return ini ? addDays(ini, n) : null;
+    if (ref === 'mitad') return ini && fin ? addDays(ini, Math.round(diffDays(fin, ini) / 2) + n) : null;
+    if (ref === 'v20') return fin ? addDays(ventana20(addDays(fin, 16)), n) : null;
+    if (!fin) return null;
+    let f = addDays(fin, n);
+    // Programas cortos: lo que va "un mes antes del fin" no puede caer antes del inicio; se corre a una semana antes del fin.
+    if (n < 0 && ini && f < ini) { const s = addDays(fin, -7); f = s >= ini ? s : ini; }
+    return f;
+  }
+  // Condiciones de un paso según el programa
+  const esVirtual = p => !p.modalidad || p.modalidad !== 'Presencial';
+  const esPresencial = p => !p.modalidad || p.modalidad === 'Presencial' || p.modalidad === 'Híbrida';
+  function aplica(p, c) {
+    if (!c) return true;
+    if (c === 'nuevo') return p.es_nuevo !== false;
+    if (c === 'cohorte') return p.es_nuevo === false;
+    if (c === 'virtual') return esVirtual(p);
+    if (c === 'presencial') return esPresencial(p);
+    return true;
+  }
+  // Marca como "No aplica" los pasos que no corresponden y reactiva los que vuelven a aplicar
+  async function aplicarCondiciones(p) {
+    let n = 0;
+    for (const i of itemsDe(p.id).filter(i => i.condicion)) {
+      const ok = aplica(p, i.condicion);
+      if (!ok && i.estado === 'pendiente') { await db.update('items', i.id, { estado: 'no_aplica' }); n++; }
+      else if (ok && i.estado === 'no_aplica') { await db.update('items', i.id, { estado: 'pendiente' }); n++; }
+    }
+    return n;
   }
   function faseDestino(fases, f) {
     if (fases.includes(f)) return f;
@@ -261,14 +324,34 @@
     return alt.find(a => fases.includes(a)) || fases[Math.max(0, fases.length - 2)] || f;
   }
   function generarItems(p, moduloIds, incluirRuta) {
-    const r = rutaDe(p), fases = r ? r.fases : [];
+    const r = rutaDe(p), fases = r ? r.fases : [], ahora = new Date();
     const tpl = S.data.plantilla_items.filter(t => (incluirRuta && t.ruta_id === p.ruta_id) || (t.modulo_id && moduloIds.includes(t.modulo_id)));
-    return tpl.map(t => ({
-      programa_id: p.id, fase: faseDestino(fases, t.fase), orden: (t.modulo_id ? 500 : 0) + (t.orden || 0),
-      titulo: t.titulo, estado: 'pendiente', responsable: t.responsable || 'Yo', esperando_a: null,
-      fecha_limite: calcFecha(p, t.dias_ref, t.dias_rel), fecha_seguimiento: null, fecha_hecho: null,
-      enlace: null, nota: null, esencial: !!t.esencial, dias_ref: t.dias_ref || null, dias_rel: t.dias_rel ?? null,
-    }));
+    const out = [];
+    tpl.forEach(t => {
+      // Repeticiones: el mismo paso cada N días hasta una fecha (solo si el programa ya tiene fechas)
+      const rels = [t.dias_rel];
+      if (t.repetir && t.dias_ref) {
+        const fin = calcFecha(p, t.repetir.hastaRef || t.dias_ref, t.repetir.hasta ?? 0);
+        for (let k = 1; k < 30; k++) {
+          const rel = t.dias_rel + k * t.repetir.cada, f = calcFecha(p, t.dias_ref, rel);
+          if (!f || !fin || f > fin) break;
+          rels.push(rel);
+        }
+      }
+      rels.forEach((rel, k) => {
+        const fecha = calcFecha(p, t.dias_ref, rel);
+        const rec = t.avisar && fecha ? aRecordar(fecha, '08:00') : null;
+        out.push({
+          programa_id: p.id, fase: faseDestino(fases, t.fase), orden: (t.modulo_id ? 500 : 0) + (t.orden || 0) + k * 0.01,
+          titulo: t.titulo, estado: aplica(p, t.condicion) ? 'pendiente' : 'no_aplica', responsable: t.responsable || 'Yo', esperando_a: null,
+          fecha_limite: fecha, fecha_seguimiento: null, fecha_hecho: null, plan_fecha: null, hora: null,
+          recordar_at: rec && new Date(rec) > ahora ? rec : null, recordado_at: null,
+          enlace: null, nota: null, esencial: !!t.esencial, dias_ref: t.dias_ref || null, dias_rel: rel ?? null,
+          condicion: t.condicion || null, clave: t.clave || null,
+        });
+      });
+    });
+    return out;
   }
   async function touch(pid) { if (pid) await db.update('programas', pid, { actualizado: nowIso() }); }
 
@@ -569,7 +652,7 @@
     const atencion = [...vencido, ...seguir];
     const porAvance = [...activos].sort((a, b) => (SEM_ORDEN[semaforo(a)] - SEM_ORDEN[semaforo(b)]) || (avance(a).pct - avance(b).pct)).slice(0, 6);
     const progRow = (p, extra) => `<div class="li" data-act="open" data-id="${p.id}"><span class="dot ${semaforo(p)}"></span>
-      <div class="grow"><div class="title ellipsis">${esc(nombreProg(p))}</div><div class="sub">${esc(entidadDe(p)?.nombre || 'Sin entidad')} · ${esc(faseActual(p))}</div></div>${extra}</div>`;
+      <div class="grow"><div class="title ellipsis">${esc(nombreProg(p))}</div><div class="sub">${esc(empresaTxt(p))} · ${esc(faseActual(p))}</div></div>${extra}</div>`;
     const qa = (icon, l, act, extra = '') => `<button class="qa" data-act="${act}"${extra}><span>${icon}</span>${l}</button>`;
     return `${head}
       ${tarjetaHoy()}
@@ -767,7 +850,7 @@
     const lista = (ev[S.cal.dia] || []).sort((a, b) => ['inicio', 'fin', 'paso', 'seg', 'hecho'].indexOf(a.k) - ['inicio', 'fin', 'paso', 'seg', 'hecho'].indexOf(b.k));
     const dSel = parse(S.cal.dia).toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' });
     const filaProg = (p, txt) => `<div class="li" data-act="open" data-id="${p.id}"><span class="cal-bar prog"></span>
-      <div class="grow"><div class="title ellipsis">${txt}: ${esc(nombreProg(p))}</div><div class="sub">${esc(entidadDe(p)?.nombre || 'Sin entidad')} · ${esc(faseActual(p))}</div></div></div>`;
+      <div class="grow"><div class="title ellipsis">${txt}: ${esc(nombreProg(p))}</div><div class="sub">${esc(empresaTxt(p))} · ${esc(faseActual(p))}</div></div></div>`;
     const cuerpo = lista.map(x => x.k === 'inicio' ? filaProg(x.p, 'Inicia') : x.k === 'fin' ? filaProg(x.p, 'Termina') : itemRow(x.i)).join('');
     // Resumen del mes
     const delMes = Object.entries(ev).filter(([d]) => d.startsWith(S.cal.mes)).flatMap(([, e]) => e);
@@ -810,7 +893,7 @@
       <div class="row" style="align-items:flex-start;gap:12px">
         ${ring(av.pct, 52, 6)}
         <div class="grow" style="min-width:0"><div class="name ellipsis">${esc(p.nombre)}</div>
-          <div class="small muted ellipsis">${esc(entidadDe(p)?.nombre || 'Sin entidad')}</div>
+          <div class="small muted ellipsis">${esc(empresaTxt(p))}</div>
           <div class="row wrap" style="margin-top:6px;gap:6px">
             <span class="pill route" style="--rc:${COL_RUTA[r?.clave] || 'var(--ink-3)'}">${esc(r?.nombre || '')}</span>
             <span class="pill">${esc(p.estado_cm || 'Proyección')}</span>
@@ -867,6 +950,29 @@
       <p class="tiny muted" style="text-align:center;margin-top:16px">Versión ${esc(BUILD)}</p>`;
   }
 
+  // Decisión de apertura: dos semanas antes del inicio, abrir, aplazar o cancelar
+  function cardDecision(p) {
+    const i = itemsDe(p.id).find(x => x.clave === 'decision_apertura' && abierto(x));
+    if (!i || p.estado !== 'activo') return '';
+    const t = today(), f = i.fecha_limite, dias = f ? diffDays(f, t) : null;
+    if (dias !== null && dias > 21) return ''; // aparece en las tres semanas previas; antes vive en el checklist
+    const cuando = f ? (dias > 0 ? `Toca el ${fmtDate(f)} (en ${plural(dias, 'día')})` : dias === 0 ? 'Toca hoy' : `Estaba para el ${fmtDate(f)}`) : 'Define la fecha de inicio para calcularla';
+    return `<div class="card pad decision ${f && dias <= 0 ? 'due' : ''} section">
+      <div class="row"><span class="kpi-ic ${f && dias <= 0 ? 'amber' : 'violet'}">${ICON.flag}</span><div class="grow"><h2>Decisión de apertura</h2><p class="small muted" style="margin:2px 0 0">${cuando}. Revisa los inscritos con la asistente.</p></div></div>
+      <div class="dec-btns">
+        <button class="btn primary" data-act="dec-abre" data-id="${p.id}">Abre</button>
+        <button class="btn" data-act="dec-aplaza" data-id="${p.id}">Aplazar</button>
+        <button class="btn danger" data-act="dec-cancela" data-id="${p.id}">Cancelar</button>
+      </div></div>`;
+  }
+  function formAplazar(p) {
+    modal(`<form data-form="aplazar" data-id="${p.id}">${sheetHead('Aplazar el programa')}
+      <p class="small muted" style="margin-top:-6px">Con la fecha nueva, Rumbo recalcula todos los pasos pendientes y sus avisos.</p>
+      <div class="two">${fld('Nuevo inicio', inp('fecha_inicio', '', 'type="date" required'))}${fld('Nuevo fin', inp('fecha_fin', '', 'type="date"'))}</div>
+      ${fld('Motivo <span class="muted">(opcional)</span>', `<textarea class="input" name="motivo" rows="2" placeholder="Ej.: 6 inscritos de 12 necesarios"></textarea>`)}
+      <div class="sheet-actions"><button type="button" class="btn" data-act="close">Cancelar</button><button class="btn primary">Aplazar</button></div></form>`);
+  }
+
   // Tarjeta con los datos del Cuadro Maestro: qué está y qué falta
   function cardCM(p) {
     const falt = faltantesCM(p), tot = TOTAL_CM(p), ok = Math.max(0, tot - falt.length), pct = Math.round(ok * 100 / tot);
@@ -915,7 +1021,7 @@
         <div class="row" style="align-items:center;gap:14px">
           ${ring(av.pct, 76, 8)}
           <div class="grow" style="min-width:0"><h1>${esc(p.nombre)}</h1>
-            <div class="muted small" style="margin-top:4px">${esc(ent?.nombre || 'Sin entidad')} · ${esc(rutaDe(p)?.nombre || '')}${mods.length ? ' + ' + esc(mods.join(', ')) : ''}</div>
+            <div class="muted small" style="margin-top:4px">${esc(empresaTxt(p))} · ${esc(rutaDe(p)?.nombre || '')}${mods.length ? ' + ' + esc(mods.join(', ')) : ''}</div>
             ${SEM_TXT[sem] && p.estado === 'activo' ? `<span class="pill ${SEM_PILL[sem]}" style="margin-top:8px">${SEM_TXT[sem]}</span>` : ''}</div>
         </div>
         ${p.estado === 'perdido' && p.motivo_perdida ? `<p class="small" style="color:var(--red)">Motivo: ${esc(p.motivo_perdida)}</p>` : ''}
@@ -928,6 +1034,7 @@
         <div class="stepper">${fs.map((f, i) => `<div class="step ${f === fa ? 'now' : (ia === -1 || i < ia) ? 'done' : ''}"><i></i>${esc(f)}</div>`).join('')}</div>
         ${p.notas ? `<p class="small muted" style="white-space:pre-wrap;margin:12px 0 0">${esc(p.notas)}</p>` : ''}
       </div>
+      ${cardDecision(p)}
       ${cardCM(p)}
       <div class="tabs">${tb('checklist', `Checklist <span>${abiertos.length}</span>`)}${tb('bitacora', 'Bitácora')}${tb('documentos', 'Documentos')}${tb('contactos', 'Contactos')}${tb('dinero', 'Facturación')}</div>
       ${content}`;
@@ -937,7 +1044,7 @@
     const fs = fasesDe(p), fa = faseActual(p), list = itemsOrdenados(p);
     const head = `<div class="row between" style="margin-bottom:10px">
       <label class="small muted row"><input type="checkbox" data-change="hide-done" ${S.hideDone ? 'checked' : ''}> Ocultar hechos</label>
-      <button class="btn sm" data-act="recalc" data-id="${p.id}">Recalcular fechas</button></div>`;
+      <div class="row"><button class="btn sm ghost" data-act="regen" data-id="${p.id}">Rehacer con plantilla</button><button class="btn sm" data-act="recalc" data-id="${p.id}">Recalcular fechas</button></div></div>`;
     return head + fs.map(f => {
       const its = list.filter(i => i.fase === f);
       const listos = its.filter(i => !abierto(i)).length;
@@ -1197,9 +1304,11 @@
           <div class="seg" data-seg-ruta>${rutas.map(r => `<button type="button" class="${r.clave === 'cerrado' ? 'on' : ''}" data-act="seg-ruta" data-id="${r.id}" data-clave="${r.clave}">${esc(r.nombre)}</button>`).join('')}</div>`)}
         ${empresa}${dl}
         ${tipo}
-        ${fld('Fecha de inicio <span class="muted">(opcional)</span>', inp('fecha_inicio', '', 'type="date"'))}
+        <div class="two">${fld('¿Es nuevo?', seg('es_nuevo', [['1', 'Nuevo'], ['0', 'Nueva cohorte']], '1'))}
+          ${fld('Modalidad', `<select class="input" name="modalidad">${opts(MODALIDADES, '', 'Por definir')}</select>`)}</div>
+        <div class="two">${fld('Inicio <span class="muted">(opcional)</span>', inp('fecha_inicio', '', 'type="date"'))}${fld('Fin <span class="muted">(opcional)</span>', inp('fecha_fin', '', 'type="date"'))}</div>
         ${modulos}
-        <p class="tiny muted">Lo demás del Cuadro Maestro lo completas cuando lo tengas; la ficha del programa te muestra qué falta.</p>
+        <p class="tiny muted">Con las fechas, Rumbo calcula los pasos y te avisa en los momentos clave. Si es nuevo, incluye el Consejo de Investigación y Extensión y el montaje en Sala desde cero; si es nueva cohorte, solo el nuevo grupo. Lo demás del Cuadro Maestro lo completas cuando lo tengas.</p>
         <div class="sheet-actions"><button type="button" class="btn" data-act="close">Cancelar</button><button class="btn primary">Crear programa</button></div>
       </form>`);
       applyShow($('#modal-root form'), rClave);
@@ -1215,6 +1324,7 @@
         ${fld('Estado', `<select class="input" name="estado_cm">${opts(ESTADOS_CM, p.estado_cm || 'Proyección')}</select>`)}</div>
       ${empresa}${dl}
       ${tipo}
+      ${fld('¿Es nuevo?', seg('es_nuevo', [['1', 'Programa nuevo'], ['0', 'Nueva cohorte']], p.es_nuevo === false ? '0' : '1'))}
       <h4 class="fsec">Fechas</h4>
       <div class="two">${fld('Inicio', inp('fecha_inicio', p.fecha_inicio, 'type="date"'))}${fld('Fin', inp('fecha_fin', p.fecha_fin, 'type="date"'))}</div>
       <h4 class="fsec">Académico</h4>
@@ -1412,6 +1522,39 @@
       if (!f.plan_fecha.value) { toast('Primero elige el día'); return; }
       out.value = `${f.plan_fecha.value}T${f.hora.value || '08:00'}`;
     },
+    async 'dec-abre'(el) {
+      const p = byId('programas', el.dataset.id), i = itemsDe(p.id).find(x => x.clave === 'decision_apertura' && abierto(x));
+      if (i) await db.update('items', i.id, { estado: 'hecho', fecha_hecho: today() });
+      await db.update('programas', p.id, { estado_cm: 'Iniciado', estado: 'activo', actualizado: nowIso() });
+      await db.insert('bitacora', { programa_id: p.id, fecha: today(), tipo: 'Decisión', resumen: 'Se confirma la apertura del programa. Estado en el Cuadro Maestro: Iniciado.', proxima_accion: 'Enviar listado al director y bienvenida a los participantes.' });
+      render(); toast('Apertura confirmada');
+    },
+    'dec-aplaza': el => formAplazar(byId('programas', el.dataset.id)),
+    async 'dec-cancela'(el) {
+      const p = byId('programas', el.dataset.id);
+      if (!confirm('¿Cancelar este programa? Quedará como Cancelado en el Cuadro Maestro hasta definir una nueva cohorte. Rumbo te deja hoy las tareas de notificación.')) return;
+      const n = nombreProg(p), base = { programa_id: null, fase: null, orden: 0, estado: 'pendiente', esperando_a: null, fecha_seguimiento: null, fecha_limite: null,
+        plan_fecha: today(), hora: null, recordar_at: null, recordado_at: null, fecha_hecho: null, enlace: null, nota: null, esencial: false, dias_ref: null, dias_rel: null };
+      await db.insert('items', [
+        { ...base, titulo: `Pedir a la asistente la notificación de no apertura a los participantes · ${n}`, responsable: 'Asistente administrativa' },
+        { ...base, titulo: `Notificar la no apertura al gestor de facultad, al director y al decano · ${n}`, responsable: 'Yo' },
+      ]);
+      const i = itemsDe(p.id).find(x => x.clave === 'decision_apertura' && abierto(x));
+      if (i) await db.update('items', i.id, { estado: 'hecho', fecha_hecho: today() });
+      await db.update('programas', p.id, { estado_cm: 'Cancelado', estado: 'perdido', actualizado: nowIso() });
+      await db.insert('bitacora', { programa_id: p.id, fecha: today(), tipo: 'Decisión', resumen: 'Programa cancelado por inscripciones insuficientes. Queda pendiente definir una nueva cohorte.', proxima_accion: 'Notificar la no apertura.' });
+      render(); formPerdido(byId('programas', p.id));
+    },
+    async regen(el) {
+      const p = byId('programas', el.dataset.id);
+      if (!confirm('¿Rehacer el checklist con la plantilla vigente? Se conservan los pasos hechos, en curso o en espera, y los que agregaste tú; el resto se reemplaza.')) return;
+      const its = itemsDe(p.id);
+      const conservar = i => i.estado !== 'pendiente' && i.estado !== 'no_aplica' || (i.orden || 0) >= 900 || i.nota || i.enlace;
+      for (const i of its.filter(i => !conservar(i))) await db.remove('items', i.id);
+      const ya = new Set(itemsDe(p.id).map(i => i.titulo.trim().toLowerCase()));
+      const nuevos = generarItems(p, p.modulos || [], true).filter(i => !ya.has(i.titulo.trim().toLowerCase()));
+      await db.insert('items', nuevos); await touch(p.id); render(); toast(`Checklist actualizado: ${plural(nuevos.length, 'paso')}`);
+    },
     'av-on': () => avEnable(),
     'av-off': () => avDisable(),
     'av-test': () => avTest(),
@@ -1509,7 +1652,11 @@
     let n = 0;
     for (const i of itemsDe(p.id).filter(i => abierto(i) && i.dias_ref)) {
       const f = calcFecha(p, i.dias_ref, i.dias_rel);
-      if (f && f !== i.fecha_limite) { await db.update('items', i.id, { fecha_limite: f }); n++; }
+      if (f && f !== i.fecha_limite) {
+        const patch = { fecha_limite: f };
+        if (i.recordar_at && !i.recordado_at && !i.hora) { const r = aRecordar(f, '08:00'); patch.recordar_at = new Date(r) > new Date() ? r : null; }
+        await db.update('items', i.id, patch); n++;
+      }
     }
     return n;
   }
@@ -1534,8 +1681,8 @@
       if (!id) {
         if (!d.ruta_id) { toast('Elige una ruta'); return; }
         if (!abierta && !entidad_id) { toast('Escribe la empresa'); f.empresa?.focus(); return; }
-        const row = clean({ nombre: d.nombre, tipo_programa: d.tipo_programa, fecha_inicio: d.fecha_inicio });
-        Object.assign(row, { ruta_id: d.ruta_id, entidad_id, modulos: mods, estado: 'activo', estado_cm: 'Proyección', prioridad: 'media', actualizado: nowIso() });
+        const row = clean({ nombre: d.nombre, tipo_programa: d.tipo_programa, fecha_inicio: d.fecha_inicio, fecha_fin: d.fecha_fin, modalidad: d.modalidad });
+        Object.assign(row, { ruta_id: d.ruta_id, entidad_id, modulos: mods, es_nuevo: d.es_nuevo !== '0', estado: 'activo', estado_cm: 'Proyección', prioridad: 'media', actualizado: nowIso() });
         const p = await db.insert('programas', row);
         await db.insert('items', generarItems(p, mods, true));
         await db.insert('bitacora', { programa_id: p.id, fecha: today(), tipo: 'Nota', resumen: 'Programa creado en Rumbo.', proxima_accion: null });
@@ -1550,7 +1697,7 @@
         orden_interna: d.orden_interna, margen: d.margen, segmento: d.segmento, ingresos: d.ingresos, notas: d.notas,
       });
       if (!abierta) row.entidad_id = entidad_id;
-      row.modulos = mods; row.actualizado = nowIso();
+      row.modulos = mods; row.actualizado = nowIso(); row.es_nuevo = d.es_nuevo !== '0';
       if (row.estado_cm) row.estado = CM_A_ESTADO[row.estado_cm] || 'activo';
       if (!abierta && row.valor_total && row.participantes) row.valor_persona = Math.round(row.valor_total / row.participantes);
       if (abierta && row.valor_persona && row.participantes) row.valor_total = row.valor_persona * row.participantes;
@@ -1558,6 +1705,7 @@
       await db.update('programas', id, row);
       const nuevos = mods.filter(m => !antes.mods.includes(m));
       if (nuevos.length) await db.insert('items', generarItems(p, nuevos, false));
+      await aplicarCondiciones(p);
       if (antes.cm !== p.estado_cm) await db.insert('bitacora', { programa_id: id, fecha: today(), tipo: 'Decisión', resumen: `Estado en el Cuadro Maestro: ${antes.cm || 'Proyección'} → ${p.estado_cm}.`, proxima_accion: null });
       let n = 0;
       if ((antes.ini !== p.fecha_inicio || antes.fin !== p.fecha_fin) && itemsDe(id).some(i => abierto(i) && i.dias_ref) &&
@@ -1647,6 +1795,13 @@
       if (f.dataset.id) await db.update('facturacion', f.dataset.id, row);
       else await db.insert('facturacion', { ...row, programa_id: f.dataset.pid });
       await touch(f.dataset.pid); closeModal(); render();
+    },
+    async aplazar(d, f) {
+      const p = byId('programas', f.dataset.id), antes = p.fecha_inicio;
+      await db.update('programas', p.id, clean({ fecha_inicio: d.fecha_inicio, fecha_fin: d.fecha_fin || p.fecha_fin, estado_cm: 'Aplazado', estado: 'activo', actualizado: nowIso() }));
+      const n = await recalcular(byId('programas', p.id));
+      await db.insert('bitacora', { programa_id: p.id, fecha: today(), tipo: 'Decisión', resumen: `Programa aplazado: inicio ${antes ? fmtDate(antes) + ' → ' : ''}${fmtDate(d.fecha_inicio)}.${d.motivo ? ' ' + d.motivo.trim() : ''}`, proxima_accion: 'Notificar el aplazamiento a los inscritos.' });
+      closeModal(); render(); toast(`Aplazado. ${plural(n, 'fecha recalculada', 'fechas recalculadas')}`);
     },
     async perdido(d, f) {
       await db.update('programas', f.dataset.id, { estado: 'perdido', estado_cm: 'Cancelado', motivo_perdida: d.motivo_perdida.trim(), actualizado: nowIso() });

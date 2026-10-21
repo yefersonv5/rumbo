@@ -182,3 +182,14 @@ alter table programas add column if not exists segmento text;
 alter table programas add column if not exists programa_academico text;
 alter table programas add column if not exists ingresos numeric;
 alter table programas add column if not exists porcentaje_aval numeric;
+
+-- Flujo real (versión 2 de plantillas)
+alter table rutas add column if not exists version int default 1;
+alter table plantilla_items add column if not exists condicion text;   -- nuevo | cohorte | virtual | presencial
+alter table plantilla_items add column if not exists repetir jsonb;    -- { cada, hastaRef, hasta }
+alter table plantilla_items add column if not exists avisar boolean default false;
+alter table plantilla_items add column if not exists clave text;       -- p. ej. decision_apertura
+alter table plantilla_items drop constraint if exists plantilla_items_dias_ref_check; -- admite mitad y v20
+alter table items add column if not exists condicion text;
+alter table items add column if not exists clave text;
+alter table programas add column if not exists es_nuevo boolean default true;
