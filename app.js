@@ -17,12 +17,12 @@
   const NUMS = ['horas', 'participantes', 'margen'];
   const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
   const LS_KEY = 'rumbo-datos-v1';
-  const BUILD = '20261020223836';
+  const BUILD = '20261020225108';
 
   const S = {
     data: Object.fromEntries(TABLES.map(t => [t, []])),
     mode: 'local', user: null, ready: false, error: null,
-    view: { name: 'hoy' },
+    view: { name: 'inicio' },
     f: { q: '', estado: 'activo', ruta: '' },
     hideDone: false, collapsed: {},
   };
@@ -223,32 +223,48 @@
   async function touch(pid) { if (pid) await db.update('programas', pid, { actualizado: nowIso() }); }
 
   // ───────────── Iconos ─────────────
-  const I = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+  const I = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   const ICON = {
-    hoy: I('<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/>'),
-    prog: I('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 14h4"/>'),
-    tpl: I('<path d="M5 4h14v4H5zM5 11h14M5 15h9M5 19h6"/>'),
-    more: I('<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>'),
+    home: I('<path d="M4 11l8-7 8 7v8a1 1 0 01-1 1h-4v-6h-6v6H5a1 1 0 01-1-1z"/>'),
+    prog: I('<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/>'),
+    cal: I('<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M9 3v4M15 3v4"/>'),
+    more: I('<circle cx="6" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="18" cy="12" r="1.4"/>'),
+    plus: I('<path d="M12 5v14M5 12h14"/>'),
+    tpl: I('<path d="M5 4h14v4H5zM5 12h14M5 16h9M5 20h6"/>'),
     close: I('<path d="M6 6l12 12M18 6L6 18"/>'),
     edit: I('<path d="M4 20h4L19 9l-4-4L4 16z"/>'),
     trash: I('<path d="M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13"/>'),
     link: I('<path d="M10 14a4 4 0 006 0l3-3a4 4 0 00-6-6l-1 1M14 10a4 4 0 00-6 0l-3 3a4 4 0 006 6l1-1"/>'),
-    check: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+    back: I('<path d="M15 5l-7 7 7 7"/>'),
+    next: I('<path d="M9 5l7 7-7 7"/>'),
+    alert: I('<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.2v.3"/>'),
+    clock: I('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
+    wait: I('<path d="M7 4h10M7 20h10M8 4c0 4 8 5 8 8s-8 4-8 8M16 4c0 4-8 5-8 8"/>'),
+    folder: I('<path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>'),
+    money: I('<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6.5 9.5v.01M17.5 14.5v.01"/>'),
+    note: I('<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/>'),
+    download: I('<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>'),
+    upload: I('<path d="M12 20V9M7 14l5-5 5 5M5 4h14"/>'),
+    out: I('<path d="M10 5H5v14h5M14 8l4 4-4 4M18 12H9"/>'),
+    flag: I('<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>'),
+    check: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
   };
 
   // ───────────── Navegación ─────────────
+  const VISTAS = ['inicio', 'programas', 'calendario', 'mas', 'plantillas'];
   function routeFromHash() {
-    const [n, id, tab] = location.hash.replace(/^#\/?/, '').split('/');
+    const [n0, id, tab] = location.hash.replace(/^#\/?/, '').split('/');
+    const n = n0 === 'hoy' ? 'inicio' : n0;
     if (n === 'programa' && id) S.view = { name: 'programa', id, tab: tab || 'checklist' };
-    else if (['programas', 'plantillas', 'hoy'].includes(n)) S.view = { name: n };
-    else S.view = { name: 'hoy' };
+    else if (VISTAS.includes(n)) S.view = { name: n };
+    else S.view = { name: 'inicio' };
   }
   function go(name, id) {
     const h = name === 'programa' ? `#/programa/${id}` : `#/${name}`;
     if (location.hash !== h) location.hash = h;
     else { routeFromHash(); render(); }
   }
-  const ORDEN_VISTA = { hoy: 0, programas: 1, plantillas: 2, programa: 3 };
+  const ORDEN_VISTA = { inicio: 0, programas: 1, calendario: 2, mas: 3, plantillas: 4, programa: 5 };
   window.addEventListener('hashchange', () => {
     const antes = S.view.name;
     routeFromHash(); closeModal(); render(); window.scrollTo(0, 0);
@@ -268,29 +284,34 @@
     if (!S.ready) { app.innerHTML = '<div class="login card"><p class="muted">Cargando…</p></div>'; return; }
     if (S.mode === 'remote' && !S.user) { app.innerHTML = viewLogin(); return; }
     let body;
-    if (S.view.name === 'programas') body = viewProgramas();
-    else if (S.view.name === 'programa') body = viewPrograma();
-    else if (S.view.name === 'plantillas') body = viewPlantillas();
-    else body = viewHoy();
-    const sec = S.view.name === 'programa' ? 'programas' : S.view.name;
-    const nb = (k, l) => `<button class="${sec === k ? 'on' : ''}" data-act="nav" data-to="${k}">${l}</button>`;
-    const bn = (k, l, ic) => `<button class="${sec === k ? 'on' : ''}" data-act="nav" data-to="${k}">${ic}<span>${l}</span></button>`;
+    const v = S.view.name;
+    if (v === 'programas') body = viewProgramas();
+    else if (v === 'programa') body = viewPrograma();
+    else if (v === 'calendario') body = viewCalendario();
+    else if (v === 'mas') body = viewMas();
+    else if (v === 'plantillas') body = viewPlantillas();
+    else body = viewInicio();
+    const sec = v === 'programa' ? 'programas' : v === 'plantillas' ? 'mas' : v;
+    const nb = (k, l, ic) => `<button class="${sec === k ? 'on' : ''}" data-act="nav" data-to="${k}" aria-label="${l}">${ic}<span>${l}</span></button>`;
     app.innerHTML = `
-      ${S.mode === 'local' ? '<div class="banner">Modo local: los datos viven solo en este navegador. Conecta Supabase en config.js para sincronizar.</div>' : ''}
-      <header class="topbar">
-        <div class="brand"><span class="brand-dot"></span>Rumbo</div>
-        <nav class="desk-nav">${nb('hoy', 'Hoy')}${nb('programas', 'Programas')}${nb('plantillas', 'Plantillas')}</nav>
-        <div class="spacer"></div>
-        <button class="icon-btn" data-act="menu" aria-label="Más opciones">${ICON.more}</button>
-      </header>
+      ${S.mode === 'local' ? '<div class="banner">Modo local: los datos viven solo en este navegador.</div>' : ''}
+      <aside class="side">
+        <div class="brand"><span class="brand-mark">${ICON.flag}</span>Rumbo</div>
+        <button class="btn primary side-new" data-act="nuevo">${ICON.plus}<span>Nuevo programa</span></button>
+        <nav class="side-nav">${nb('inicio', 'Inicio', ICON.home)}${nb('programas', 'Programas', ICON.prog)}${nb('calendario', 'Calendario', ICON.cal)}${nb('mas', 'Más', ICON.more)}</nav>
+        <button class="side-cap" data-act="captura">${ICON.note}<span>Captura rápida</span></button>
+      </aside>
       <main>${body}</main>
-      <button class="fab" data-act="captura" aria-label="Captura rápida">+</button>
-      <nav class="bottom-nav">${bn('hoy', 'Hoy', ICON.hoy)}${bn('programas', 'Programas', ICON.prog)}${bn('plantillas', 'Plantillas', ICON.tpl)}</nav>`;
+      <nav class="bottom-nav">
+        ${nb('inicio', 'Inicio', ICON.home)}${nb('programas', 'Programas', ICON.prog)}
+        <button class="nav-plus" data-act="captura" aria-label="Captura rápida">${ICON.plus}</button>
+        ${nb('calendario', 'Calendario', ICON.cal)}${nb('mas', 'Más', ICON.more)}
+      </nav>`;
   }
 
   function viewLogin() {
     return `<form class="login card" data-form="login">
-      <div class="brand" style="margin-bottom:16px"><span class="brand-dot"></span>Rumbo</div>
+      <div class="brand" style="margin-bottom:16px"><span class="brand-mark">${ICON.flag}</span>Rumbo</div>
       <p class="muted small" style="margin-top:0">Seguimiento de programas de Educación Continuada.</p>
       <div class="field"><label>Correo</label><input class="input" name="email" type="email" autocomplete="username" required></div>
       <div class="field"><label>Contraseña</label><input class="input" name="password" type="password" autocomplete="current-password" required></div>
@@ -300,7 +321,99 @@
     </form>`;
   }
 
-  // ───────────── Hoy ─────────────
+  // ───────────── Piezas visuales ─────────────
+  // Anillo de avance: un solo valor, el número va en el centro.
+  function ring(pct, size = 64, stroke = 7, label) {
+    const r = (size - stroke) / 2, c = 2 * Math.PI * r, off = c * (1 - Math.max(0, Math.min(100, pct)) / 100);
+    return `<div class="ring" style="width:${size}px;height:${size}px" role="img" aria-label="${pct}% de avance">
+      <svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="var(--track)" stroke-width="${stroke}"/>
+      <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="var(--accent)" stroke-width="${stroke}" stroke-linecap="round"
+        stroke-dasharray="${c.toFixed(2)}" stroke-dashoffset="${off.toFixed(2)}" transform="rotate(-90 ${size / 2} ${size / 2})"/></svg>
+      <b>${label ?? pct + '%'}</b></div>`;
+  }
+  function kpi(icon, tone, valor, etiqueta, act) {
+    return `<div class="card kpi"${act ? ` data-act="${act}" role="button"` : ''}><span class="kpi-ic ${tone}">${icon}</span><div><b>${valor}</b><span>${etiqueta}</span></div></div>`;
+  }
+  const saludo = () => { const h = new Date().getHours(); return h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches'; };
+  const nombreUsuario = () => 'Yeferson';
+  const plural = (n, s, p) => `${n} ${n === 1 ? s : (p || s + 's')}`;
+  function moneyCorto(n) {
+    n = Number(n) || 0;
+    if (n >= 1e9) return '$ ' + (n / 1e9).toLocaleString('es-CO', { maximumFractionDigits: 1 }) + ' mil M';
+    if (n >= 1e6) return '$ ' + (n / 1e6).toLocaleString('es-CO', { maximumFractionDigits: 1 }) + ' M';
+    return money(n);
+  }
+
+  // Línea: pasos completados por semana (una serie; el título la nombra, sin leyenda).
+  function chartSemanas(activosIds) {
+    const N = 8, lunes = d => { const x = parse(d); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return isoOf(x); };
+    const fin = lunes(today()), semanas = [];
+    for (let k = N - 1; k >= 0; k--) semanas.push(addDays(fin, -7 * k));
+    const cuenta = semanas.map(s => S.data.items.filter(i => i.estado === 'hecho' && i.fecha_hecho && i.fecha_hecho >= s && i.fecha_hecho < addDays(s, 7)).length);
+    const total = cuenta.reduce((a, b) => a + b, 0);
+    const W = 320, H = 150, L = 26, R = 10, T = 14, B = 26, max = Math.max(4, ...cuenta), step = Math.ceil(max / 4);
+    const top = step * 4, X = i => L + i * (W - L - R) / (N - 1), Y = v => T + (H - T - B) * (1 - v / top);
+    const pts = cuenta.map((v, i) => `${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');
+    const area = `M${X(0)},${Y(0)} L${pts.split(' ').join(' L')} L${X(N - 1)},${Y(0)} Z`;
+    const grid = [0, 1, 2, 3, 4].map(k => `<line x1="${L}" x2="${W - R}" y1="${Y(k * step)}" y2="${Y(k * step)}" stroke="var(--grid)"/>
+      <text x="${L - 6}" y="${Y(k * step) + 3.5}" text-anchor="end">${k * step}</text>`).join('');
+    const labels = semanas.map((s, i) => (i % 2 === 1 || i === N - 1) ? `<text x="${X(i)}" y="${H - 8}" text-anchor="middle">${fmtDate(s).replace(/ \d{4}$/, '')}</text>` : '').join('');
+    const hits = semanas.map((s, i) => `<rect class="hit" x="${X(i) - (W - L - R) / (N - 1) / 2}" y="${T}" width="${(W - L - R) / (N - 1)}" height="${H - T - B}" fill="transparent"
+      data-tip="Semana del ${fmtDate(s)}|${plural(cuenta[i], 'paso completado', 'pasos completados')}" data-x="${X(i)}" data-y="${Y(cuenta[i])}"/>`).join('');
+    return `<div class="card pad chart-card">
+      <div class="row between"><h2>Pasos completados</h2><span class="pill">Últimas 8 semanas</span></div>
+      <p class="small muted" style="margin:4px 0 6px">${plural(total, 'paso cerrado', 'pasos cerrados')}; esta semana ${cuenta[N - 1]}.</p>
+      <div class="chart" data-chart="semanas">
+        <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Pasos completados por semana">
+          ${grid}${labels}
+          <path d="${area}" fill="var(--accent)" fill-opacity=".10"/>
+          <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+          ${cuenta.map((v, i) => i === N - 1 ? `<circle cx="${X(i)}" cy="${Y(v)}" r="4" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>` : '').join('')}
+          <g class="xh" style="display:none"><line y1="${T}" y2="${H - B}" stroke="var(--ink-3)" stroke-dasharray="3 3"/><circle r="4.5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/></g>
+          ${hits}
+        </svg>
+      </div></div>`;
+  }
+
+  // Barras horizontales: programas activos por fase actual (una serie, valor al final de cada barra).
+  function chartFases(activos) {
+    const orden = ['Oportunidad', 'Solicitud', 'Diseño', 'Revisión', 'Negociación', 'Lanzamiento', 'Captación', 'Aprobación', 'Alistamiento', 'Operación', 'Ejecución', 'Cierre', 'Vigencia', 'Completo'];
+    const c = {};
+    activos.forEach(p => { const f = faseActual(p); c[f] = (c[f] || 0) + 1; });
+    const filas = Object.entries(c).sort((a, b) => (orden.indexOf(a[0]) - orden.indexOf(b[0])));
+    if (!filas.length) return '';
+    const max = Math.max(...filas.map(f => f[1]));
+    return `<div class="card pad">
+      <h2>Programas por fase</h2><p class="small muted" style="margin:4px 0 12px">Dónde está hoy cada programa activo.</p>
+      <div class="hbars">${filas.map(([f, n]) => `<div class="hbar" title="${esc(f)}: ${n}"><span class="hb-l">${esc(f)}</span>
+        <span class="hb-t"><i style="width:${Math.max(4, n / max * 100)}%"></i></span><b>${n}</b></div>`).join('')}</div></div>`;
+  }
+
+  // Dona: reparto del portafolio activo por ruta (3 categorías fijas, colores en orden, valor visible en la leyenda).
+  const COL_RUTA = { cerrado: 'var(--c1)', aval: 'var(--c2)', abierta: 'var(--c3)' };
+  function chartRutas(activos) {
+    const rutas = [...S.data.rutas].sort((a, b) => a.orden - b.orden);
+    const filas = rutas.map(r => ({ r, n: activos.filter(p => p.ruta_id === r.id).length, v: activos.filter(p => p.ruta_id === r.id).reduce((s, p) => s + (Number(p.valor_total) || 0), 0) })).filter(f => f.n);
+    const tot = filas.reduce((s, f) => s + f.n, 0);
+    if (!tot) return '';
+    const R = 42, C = 2 * Math.PI * R, gap = filas.length > 1 ? 2.5 : 0;
+    let acc = 0;
+    const arcs = filas.map(f => {
+      const len = C * f.n / tot, d = `${Math.max(0, len - gap).toFixed(2)} ${(C - Math.max(0, len - gap)).toFixed(2)}`;
+      const s = `<circle cx="55" cy="55" r="${R}" fill="none" stroke="${COL_RUTA[f.r.clave] || 'var(--ink-3)'}" stroke-width="14" stroke-dasharray="${d}" stroke-dashoffset="${(-acc).toFixed(2)}" transform="rotate(-90 55 55)"><title>${esc(f.r.nombre)}: ${f.n}</title></circle>`;
+      acc += len; return s;
+    }).join('');
+    return `<div class="card pad">
+      <h2>Portafolio por ruta</h2><p class="small muted" style="margin:4px 0 12px">Programas activos y su valor.</p>
+      <div class="donut-row">
+        <svg viewBox="0 0 110 110" width="110" height="110" role="img" aria-label="Programas activos por ruta">${arcs}
+          <text x="55" y="53" text-anchor="middle" class="dn-n">${tot}</text><text x="55" y="68" text-anchor="middle" class="dn-l">activos</text></svg>
+        <div class="legend">${filas.map(f => `<div><i style="background:${COL_RUTA[f.r.clave] || 'var(--ink-3)'}"></i><span class="grow">${esc(f.r.nombre)}</span>
+          <b>${f.n}</b><span class="muted tiny">${f.v ? moneyCorto(f.v) : ''}</span></div>`).join('')}</div>
+      </div></div>`;
+  }
+
+  // ───────────── Inicio (tablero) ─────────────
   function itemRow(i, showProg = true) {
     const p = byId('programas', i.programa_id), t = today();
     const fecha = i.estado === 'esperando' ? i.fecha_seguimiento : i.fecha_limite;
@@ -327,47 +440,163 @@
       ${pill}
     </div>`;
   }
-  function seccion(titulo, html, n, vacio) {
-    return `<section class="section"><div class="section-head"><h3>${titulo}${n !== undefined ? ` · ${n}` : ''}</h3></div>
+  function seccion(titulo, html, n, vacio, extra = '') {
+    return `<section class="section"><div class="section-head"><h3>${titulo}${n !== undefined ? ` <span class="count">${n}</span>` : ''}</h3>${extra}</div>
       <div class="card list">${html || `<div class="empty">${vacio}</div>`}</div></section>`;
   }
-  function viewHoy() {
-    const t = today(), t7 = addDays(t, 7), t30 = addDays(t, 30), t14 = addDays(t, -14);
+  function pendientes() {
+    const t = today(), t7 = addDays(t, 7);
     const activos = S.data.programas.filter(p => p.estado === 'activo');
-    const fecha = new Date().toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' });
-    if (!S.data.programas.length) {
-      return `<h1 style="text-transform:capitalize">${esc(fecha)}</h1>
-        <div class="card pad section stack">
-          <h2>Empieza con tu primer programa</h2>
-          <p class="muted">Cada programa nace de una ruta (Cerrado B2B, Aval académico u Oferta abierta) y los módulos que necesite. La app arma el checklist y calcula las fechas desde el inicio del programa.</p>
-          <button class="btn primary" data-act="nuevo">Crear programa</button>
-        </div>`;
-    }
     const ids = new Set(activos.map(p => p.id));
     const its = S.data.items.filter(i => ids.has(i.programa_id) && abierto(i));
     const seguir = its.filter(i => i.estado === 'esperando' && (!i.fecha_seguimiento || i.fecha_seguimiento <= t)).sort(byDate('fecha_seguimiento'));
     const seg = new Set(seguir.map(i => i.id));
     const vencido = its.filter(i => !seg.has(i.id) && i.fecha_limite && i.fecha_limite < t).sort(byDate('fecha_limite'));
     const clave = i => i.estado === 'esperando' ? i.fecha_seguimiento : i.fecha_limite;
-    const semana = its.filter(i => { const f = clave(i); return !seg.has(i.id) && f && f >= t && f <= t7; })
-      .sort((a, b) => clave(a).localeCompare(clave(b)));
-    const quietos = activos.filter(p => (p.actualizado || p.created_at || '').slice(0, 10) < t14);
+    const semana = its.filter(i => { const f = clave(i); return !seg.has(i.id) && f && f >= t && f <= t7; }).sort((a, b) => clave(a).localeCompare(clave(b)));
+    return { activos, its, seguir, vencido, semana };
+  }
+  function proximo(p) {
+    const its = itemsDe(p.id).filter(i => abierto(i) && (i.fecha_limite || i.fecha_seguimiento));
+    const f = i => i.estado === 'esperando' ? i.fecha_seguimiento : i.fecha_limite;
+    return its.sort((a, b) => (f(a) || '9').localeCompare(f(b) || '9'))[0] || null;
+  }
+  function progAvanceRow(p) {
+    const av = avance(p), nx = proximo(p), t = today();
+    const fx = nx ? (nx.estado === 'esperando' ? nx.fecha_seguimiento : nx.fecha_limite) : null;
+    return `<div class="li" data-act="open" data-id="${p.id}">
+      ${ring(av.pct, 44, 5)}
+      <div class="grow"><div class="title ellipsis">${esc(nombreProg(p))}</div>
+        <div class="sub ellipsis">${esc(faseActual(p))}${nx ? ' · ' + esc(nx.titulo) : ''}</div></div>
+      ${fx ? `<span class="pill ${fx < t ? 'red' : fx <= addDays(t, 3) ? 'amber' : ''}">${relDate(fx)}</span>` : `<span class="dot ${semaforo(p)}"></span>`}
+    </div>`;
+  }
+  function viewInicio() {
+    const t = today(), t30 = addDays(t, 30), t14 = addDays(t, -14);
+    const fecha = new Date().toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' });
+    const head = `<header class="hello"><div><p class="muted small cap">${esc(fecha)}</p><h1>${saludo()}, ${esc(nombreUsuario())}</h1></div>
+      <button class="avatar" data-act="nav" data-to="mas" aria-label="Más opciones">${esc(nombreUsuario().slice(0, 1))}</button></header>`;
+    if (!S.data.programas.length) {
+      return head + `<div class="card hero section">
+          <div><h2>Empieza con tu primer programa</h2>
+          <p>Cada programa nace de una ruta (Cerrado B2B, Aval académico u Oferta abierta) y los módulos que necesite. Rumbo arma el checklist y calcula las fechas desde el inicio.</p>
+          <button class="btn light" data-act="nuevo">Crear programa</button></div>
+        </div>`;
+    }
+    const { activos, its, seguir, vencido, semana } = pendientes();
+    // Avance del portafolio: pasos esenciales hechos sobre el total de los programas activos.
+    let hechos = 0, total = 0;
+    activos.forEach(p => { const a = avance(p); hechos += a.d; total += a.n; });
+    const pct = total ? Math.round(hechos * 100 / total) : 0;
+    const alDia = activos.filter(p => semaforo(p) === 'verde').length;
+    const cartera = activos.reduce((s, p) => s + (Number(p.valor_total) || 0), 0);
+    const margenes = activos.filter(p => p.margen !== null && p.margen !== undefined && p.margen !== '');
+    const margen = margenes.length ? Math.round(margenes.reduce((s, p) => s + Number(p.margen), 0) / margenes.length) : null;
     const inicios = activos.filter(p => p.fecha_inicio && p.fecha_inicio >= t && p.fecha_inicio <= t30).sort(byDate('fecha_inicio'));
+    const quietos = activos.filter(p => (p.actualizado || p.created_at || '').slice(0, 10) < t14);
+    const atencion = [...vencido, ...seguir];
+    const porAvance = [...activos].sort((a, b) => (SEM_ORDEN[semaforo(a)] - SEM_ORDEN[semaforo(b)]) || (avance(a).pct - avance(b).pct)).slice(0, 6);
     const progRow = (p, extra) => `<div class="li" data-act="open" data-id="${p.id}"><span class="dot ${semaforo(p)}"></span>
-      <div class="grow"><div class="title ellipsis">${esc(p.nombre)}</div><div class="sub">${esc(entidadDe(p)?.nombre || 'Sin entidad')} · ${esc(faseActual(p))}</div></div>${extra}</div>`;
-    return `
-      <h1 style="text-transform:capitalize">${esc(fecha)}</h1>
-      <div class="stats section">
-        <div class="card stat ${vencido.length ? 'red' : ''}"><b>${vencido.length}</b><span>Vencidos</span></div>
-        <div class="card stat ${seguir.length ? 'amber' : ''}"><b>${seguir.length}</b><span>Por seguir</span></div>
-        <div class="card stat"><b>${semana.length}</b><span>Próximos 7 días</span></div>
-        <div class="card stat"><b>${activos.length}</b><span>Programas activos</span></div>
+      <div class="grow"><div class="title ellipsis">${esc(nombreProg(p))}</div><div class="sub">${esc(entidadDe(p)?.nombre || 'Sin entidad')} · ${esc(faseActual(p))}</div></div>${extra}</div>`;
+    const qa = (icon, l, act, extra = '') => `<button class="qa" data-act="${act}"${extra}><span>${icon}</span>${l}</button>`;
+    return `${head}
+      <div class="dash">
+        <div class="card hero" data-act="nav" data-to="programas" role="button">
+          ${ring(pct, 92, 9)}
+          <div class="grow"><h2>Avance del portafolio</h2>
+            <p>${hechos} de ${total} pasos esenciales completos en ${plural(activos.length, 'programa activo', 'programas activos')}.</p>
+            <p class="hero-sub">${alDia === activos.length ? 'Todo al día.' : `${plural(alDia, 'programa', 'programas')} al día, ${activos.length - alDia} con algo por atender.`}</p></div>
+        </div>
+        <div class="kpis">
+          ${kpi(ICON.folder, 'violet', activos.length, 'Programas activos', 'nav-programas')}
+          ${kpi(ICON.alert, vencido.length ? 'red' : 'green', vencido.length, 'Pasos vencidos')}
+          ${kpi(ICON.wait, seguir.length ? 'amber' : 'green', seguir.length, 'Por hacer seguimiento')}
+          ${kpi(ICON.clock, 'blue', semana.length, 'Vencen en 7 días', 'nav-calendario')}
+        </div>
+        ${cartera ? `<div class="card money-card"><span class="kpi-ic violet">${ICON.money}</span><div class="grow"><span class="muted small">Cartera activa</span><b>${money(cartera)}</b></div>
+          ${margen !== null ? `<div class="mg"><span class="muted small">Margen promedio</span><b>${margen} %</b></div>` : ''}</div>` : ''}
+        <div class="quick">
+          ${qa(ICON.plus, 'Nuevo programa', 'nuevo')}${qa(ICON.note, 'Captura', 'captura')}${qa(ICON.cal, 'Calendario', 'nav', ' data-to="calendario"')}${qa(ICON.download, 'Exportar', 'export-csv')}
+        </div>
       </div>
-      ${seccion('Vencido', vencido.map(i => itemRow(i)).join(''), vencido.length, 'Nada vencido.')}
-      ${seccion('Seguimientos para hoy', seguir.map(i => itemRow(i)).join(''), seguir.length, 'No hay respuestas pendientes por perseguir hoy.')}
-      ${seccion('Próximos 7 días', semana.map(i => itemRow(i)).join(''), semana.length, 'Semana despejada.')}
-      ${inicios.length ? seccion('Inicios en los próximos 30 días', inicios.map(p => progRow(p, `<span class="pill accent">${relDate(p.fecha_inicio)}</span>`)).join(''), inicios.length) : ''}
-      ${quietos.length ? seccion('Sin movimiento en 14 días', quietos.map(p => progRow(p, `<span class="pill">${fmtDate((p.actualizado || p.created_at).slice(0, 10))}</span>`)).join(''), quietos.length) : ''}`;
+      <div class="dash-cols">
+        <div>
+          ${seccion('Requiere tu atención', atencion.slice(0, 6).map(i => itemRow(i)).join(''), atencion.length, 'Nada vencido ni seguimientos pendientes. Vas al día.',
+            atencion.length > 6 ? '<button class="link" data-act="nav" data-to="calendario">Ver todo</button>' : '')}
+          ${seccion('Próximos 7 días', semana.slice(0, 6).map(i => itemRow(i)).join(''), semana.length, 'Semana despejada.',
+            semana.length > 6 ? '<button class="link" data-act="nav" data-to="calendario">Ver calendario</button>' : '')}
+          ${seccion('Avance por programa', porAvance.map(progAvanceRow).join(''), undefined, 'Sin programas activos.',
+            '<button class="link" data-act="nav" data-to="programas">Ver todos</button>')}
+        </div>
+        <div>
+          <section class="section">${chartSemanas()}</section>
+          <section class="section">${chartFases(activos)}</section>
+          <section class="section">${chartRutas(activos)}</section>
+          ${inicios.length ? seccion('Inicios en 30 días', inicios.map(p => progRow(p, `<span class="pill accent">${relDate(p.fecha_inicio)}</span>`)).join(''), inicios.length) : ''}
+          ${quietos.length ? seccion('Sin movimiento en 14 días', quietos.map(p => progRow(p, `<span class="pill">${fmtDate((p.actualizado || p.created_at).slice(0, 10))}</span>`)).join(''), quietos.length) : ''}
+        </div>
+      </div>`;
+  }
+
+  // ───────────── Calendario ─────────────
+  // Eventos de un día: pasos con fecha límite, seguimientos, inicios y cierres de programas activos.
+  function eventosPorDia() {
+    const ev = {}, add = (d, e) => { if (!d) return; (ev[d] = ev[d] || []).push(e); };
+    const activos = new Set(S.data.programas.filter(p => p.estado === 'activo').map(p => p.id));
+    S.data.items.forEach(i => {
+      if (!activos.has(i.programa_id)) return;
+      if (i.estado === 'esperando') add(i.fecha_seguimiento, { k: 'seg', i });
+      else if (abierto(i)) add(i.fecha_limite, { k: 'paso', i });
+      else if (i.estado === 'hecho') add(i.fecha_hecho, { k: 'hecho', i });
+    });
+    S.data.programas.forEach(p => {
+      if (p.estado !== 'activo') return;
+      add(p.fecha_inicio, { k: 'inicio', p });
+      if (p.fecha_fin && p.fecha_fin !== p.fecha_inicio) add(p.fecha_fin, { k: 'fin', p });
+    });
+    return ev;
+  }
+  function viewCalendario() {
+    const t = today();
+    if (!S.cal) S.cal = { mes: t.slice(0, 7), dia: t };
+    const [y, m] = S.cal.mes.split('-').map(Number);
+    const first = new Date(y, m - 1, 1), offset = (first.getDay() + 6) % 7, dias = new Date(y, m, 0).getDate();
+    const ev = eventosPorDia();
+    const titulo = first.toLocaleDateString('es-CO', { month: 'long', year: 'numeric' });
+    let celdas = '';
+    for (let k = 0; k < offset; k++) celdas += '<span class="cd empty"></span>';
+    for (let d = 1; d <= dias; d++) {
+      const iso = `${y}-${pad(m)}-${pad(d)}`, e = (ev[iso] || []).filter(x => x.k !== 'hecho');
+      const venc = e.some(x => (x.k === 'paso' || x.k === 'seg') && iso < t);
+      const marcas = [...new Set(e.map(x => x.k === 'inicio' || x.k === 'fin' ? 'prog' : venc ? 'venc' : x.k))].slice(0, 3);
+      celdas += `<button class="cd ${iso === t ? 'today' : ''} ${iso === S.cal.dia ? 'sel' : ''}" data-act="cal-dia" data-d="${iso}" aria-label="${d}${e.length ? ', ' + plural(e.length, 'evento') : ''}">
+        <span>${d}</span><i>${marcas.map(c => `<em class="mk ${c}"></em>`).join('')}</i></button>`;
+    }
+    const lista = (ev[S.cal.dia] || []).sort((a, b) => ['inicio', 'fin', 'paso', 'seg', 'hecho'].indexOf(a.k) - ['inicio', 'fin', 'paso', 'seg', 'hecho'].indexOf(b.k));
+    const dSel = parse(S.cal.dia).toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' });
+    const filaProg = (p, txt) => `<div class="li" data-act="open" data-id="${p.id}"><span class="cal-bar prog"></span>
+      <div class="grow"><div class="title ellipsis">${txt}: ${esc(nombreProg(p))}</div><div class="sub">${esc(entidadDe(p)?.nombre || 'Sin entidad')} · ${esc(faseActual(p))}</div></div></div>`;
+    const cuerpo = lista.map(x => x.k === 'inicio' ? filaProg(x.p, 'Inicia') : x.k === 'fin' ? filaProg(x.p, 'Termina') : itemRow(x.i)).join('');
+    // Resumen del mes
+    const delMes = Object.entries(ev).filter(([d]) => d.startsWith(S.cal.mes)).flatMap(([, e]) => e);
+    const nPasos = delMes.filter(x => x.k === 'paso').length, nSeg = delMes.filter(x => x.k === 'seg').length, nIni = delMes.filter(x => x.k === 'inicio').length, nHechos = delMes.filter(x => x.k === 'hecho').length;
+    return `<div class="page-head"><h1>Calendario</h1><button class="btn sm" data-act="cal-hoy">Hoy</button></div>
+      <div class="cal-layout">
+        <div class="card pad cal">
+          <div class="cal-top"><button class="icon-btn" data-act="cal-mes" data-n="-1" aria-label="Mes anterior">${ICON.back}</button>
+            <b class="cap">${esc(titulo)}</b><button class="icon-btn" data-act="cal-mes" data-n="1" aria-label="Mes siguiente">${ICON.next}</button></div>
+          <div class="cal-grid wk">${['L', 'M', 'M', 'J', 'V', 'S', 'D'].map(d => `<span>${d}</span>`).join('')}</div>
+          <div class="cal-grid">${celdas}</div>
+          <div class="cal-key"><span><em class="mk paso"></em>Paso</span><span><em class="mk seg"></em>Seguimiento</span><span><em class="mk venc"></em>Vencido</span><span><em class="mk prog"></em>Inicio o fin</span></div>
+        </div>
+        <div>
+          <div class="kpis kpis-3">
+            ${kpi(ICON.clock, 'blue', nPasos, 'Pasos este mes')}${kpi(ICON.wait, 'amber', nSeg, 'Seguimientos')}${kpi(ICON.flag, 'violet', nIni, 'Inicios')}
+          </div>
+          ${seccion(`<span class="cap">${esc(dSel)}</span>`, cuerpo, lista.length || undefined, 'Nada programado este día.')}
+          ${nHechos ? `<p class="small muted" style="margin-top:10px">Este mes completaste ${plural(nHechos, 'paso', 'pasos')}.</p>` : ''}
+        </div>
+      </div>`;
   }
 
   // ───────────── Programas ─────────────
@@ -379,43 +608,82 @@
       .filter(p => !q || [p.nombre, p.nombre_corto, entidadDe(p)?.nombre, p.facultad, p.tipo].some(v => (v || '').toLowerCase().includes(q)))
       .sort((a, b) => (SEM_ORDEN[semaforo(a)] - SEM_ORDEN[semaforo(b)]) || (a.fecha_inicio || '9999').localeCompare(b.fecha_inicio || '9999'));
   }
+  const SEM_TXT = { rojo: 'Atrasado', amarillo: 'Atento', verde: 'Al día', gris: '' };
+  const SEM_PILL = { rojo: 'red', amarillo: 'amber', verde: 'green', gris: '' };
   function programCard(p) {
-    const av = avance(p), sem = semaforo(p), fa = faseActual(p);
+    const av = avance(p), sem = semaforo(p), fa = faseActual(p), nx = proximo(p), t = today();
+    const fx = nx ? (nx.estado === 'esperando' ? nx.fecha_seguimiento : nx.fecha_limite) : null;
+    const r = rutaDe(p);
     return `<div class="card pcard" data-act="open" data-id="${p.id}">
-      <div class="row"><span class="dot ${sem}"></span><div class="name grow ellipsis">${esc(p.nombre)}</div></div>
-      <div class="small muted ellipsis">${esc(entidadDe(p)?.nombre || 'Sin entidad')} · ${esc(rutaDe(p)?.nombre || '')}</div>
-      <div class="row wrap"><span class="pill accent">${esc(fa)}</span>${p.estado !== 'activo' ? `<span class="pill">${ESTADOS_PROG[p.estado]}</span>` : ''}
-        ${p.fecha_inicio ? `<span class="pill">Inicio ${fmtDate(p.fecha_inicio)}</span>` : ''}</div>
-      <div class="row"><div class="bar grow"><i style="width:${av.pct}%"></i></div><span class="tiny muted">${av.d}/${av.n}</span></div>
-      ${p.valor_total ? `<div class="small"><b>${money(p.valor_total)}</b>${p.participantes ? ` <span class="muted">· ${p.participantes} part.</span>` : ''}</div>` : ''}
+      <div class="row" style="align-items:flex-start;gap:12px">
+        ${ring(av.pct, 52, 6)}
+        <div class="grow" style="min-width:0"><div class="name ellipsis">${esc(p.nombre)}</div>
+          <div class="small muted ellipsis">${esc(entidadDe(p)?.nombre || 'Sin entidad')}</div>
+          <div class="row wrap" style="margin-top:6px;gap:6px">
+            <span class="pill route" style="--rc:${COL_RUTA[r?.clave] || 'var(--ink-3)'}">${esc(r?.nombre || '')}</span>
+            ${p.estado !== 'activo' ? `<span class="pill">${ESTADOS_PROG[p.estado]}</span>` : SEM_TXT[sem] ? `<span class="pill ${SEM_PILL[sem]}">${SEM_TXT[sem]}</span>` : ''}
+          </div></div>
+      </div>
+      <div class="pc-foot">
+        <div><span>Fase</span><b>${esc(fa)}</b></div>
+        <div><span>Inicio</span><b>${p.fecha_inicio ? fmtDate(p.fecha_inicio) : '—'}</b></div>
+        <div><span>Valor</span><b>${p.valor_total ? moneyCorto(p.valor_total) : '—'}</b></div>
+      </div>
+      ${nx ? `<div class="pc-next"><span class="muted">Siguiente:</span> <span class="ellipsis grow">${esc(nx.titulo)}</span>${fx ? `<span class="pill ${fx < t ? 'red' : fx <= addDays(t, 3) ? 'amber' : ''}">${relDate(fx)}</span>` : ''}</div>` : ''}
     </div>`;
   }
   function listaProgramas() {
     const ps = programasFiltrados();
     if (!ps.length) return '<div class="card empty">No hay programas con estos filtros.</div>';
     const total = ps.reduce((s, p) => s + (Number(p.valor_total) || 0), 0);
-    return `<p class="small muted">${ps.length} programa${ps.length === 1 ? '' : 's'}${total ? ` · ${money(total)}` : ''}</p><div class="grid">${ps.map(programCard).join('')}</div>`;
+    return `<p class="small muted">${plural(ps.length, 'programa')}${total ? ` · ${money(total)}` : ''}</p><div class="grid">${ps.map(programCard).join('')}</div>`;
   }
   function viewProgramas() {
-    const chip = (v, l) => `<button class="chip ${S.f.estado === v ? 'on' : ''}" data-act="f-estado" data-v="${v}">${l}</button>`;
+    const n = e => S.data.programas.filter(p => e === 'todos' || p.estado === e).length;
+    const chip = (v, l) => `<button class="chip ${S.f.estado === v ? 'on' : ''}" data-act="f-estado" data-v="${v}">${l}<span>${n(v)}</span></button>`;
     return `
-      <div class="row between"><h1>Programas</h1><button class="btn primary" data-act="nuevo">Nuevo programa</button></div>
+      <div class="page-head"><h1>Programas</h1><button class="btn primary" data-act="nuevo">${ICON.plus}<span>Nuevo</span></button></div>
       <div class="filters">
-        <input class="input" type="search" placeholder="Buscar programa, entidad, facultad…" value="${esc(S.f.q)}" data-input="buscar">
+        <input class="input search" type="search" placeholder="Buscar programa, entidad, facultad…" value="${esc(S.f.q)}" data-input="buscar">
         <select class="input" data-change="f-ruta">${opts(S.data.rutas.map(r => [r.id, r.nombre]), S.f.ruta, 'Todas las rutas')}</select>
       </div>
       <div class="chips">${chip('activo', 'Activos')}${chip('pausa', 'En pausa')}${chip('cerrado', 'Cerrados')}${chip('perdido', 'Perdidos')}${chip('todos', 'Todos')}</div>
       <div id="prog-list" class="section">${listaProgramas()}</div>`;
   }
 
+  // ───────────── Más ─────────────
+  function viewMas() {
+    const row = (icon, l, act, extra = '', sub = '') => `<button class="li menu-li" data-act="${act}"${extra}><span class="kpi-ic violet">${icon}</span><div class="grow"><div class="title">${l}</div>${sub ? `<div class="sub">${sub}</div>` : ''}</div><span class="muted">${ICON.next}</span></button>`;
+    const ps = S.data.programas;
+    return `<div class="page-head"><h1>Más</h1></div>
+      <div class="card profile">
+        <span class="avatar lg">${esc(nombreUsuario().slice(0, 1))}</span>
+        <div class="grow"><b>${esc(nombreUsuario())}</b><span class="small muted">${esc(S.user?.email || 'Modo local')}</span></div>
+      </div>
+      <div class="kpis kpis-3 section">
+        ${kpi(ICON.folder, 'violet', ps.length, 'Programas')}${kpi(ICON.flag, 'green', ps.filter(p => p.estado === 'cerrado').length, 'Cerrados')}${kpi(ICON.note, 'blue', S.data.entidades.length, 'Entidades')}
+      </div>
+      <div class="card list section">
+        ${row(ICON.tpl, 'Plantillas', 'nav', ' data-to="plantillas"', 'Rutas y módulos con los que nace cada programa')}
+        ${row(ICON.download, 'Exportar programas', 'export-csv', '', 'CSV para el Cuadro Maestro')}
+        ${row(ICON.download, 'Descargar respaldo', 'export-json', '', 'Copia completa en JSON')}
+        <label class="li menu-li"><span class="kpi-ic violet">${ICON.upload}</span><div class="grow"><div class="title">Importar respaldo</div><div class="sub">Desde un archivo JSON</div></div><input type="file" accept="application/json,.json" data-change="import" hidden></label>
+      </div>
+      ${S.mode === 'remote' ? `<button class="btn danger section" style="width:100%" data-act="logout">${ICON.out}<span>Cerrar sesión</span></button>` : ''}
+      <p class="tiny muted" style="text-align:center;margin-top:16px">Versión ${esc(BUILD)}</p>`;
+  }
+
   // ───────────── Ficha de programa ─────────────
   function viewPrograma() {
     const p = byId('programas', S.view.id);
     if (!p) return '<div class="card empty">Este programa no existe. <a href="#/programas">Ver programas</a></div>';
-    const fs = fasesDe(p), fa = faseActual(p), ia = fs.indexOf(fa), ent = entidadDe(p);
+    const fs = fasesDe(p), fa = faseActual(p), ia = fs.indexOf(fa), ent = entidadDe(p), av = avance(p), t = today();
     const fact = (l, v) => v || v === 0 ? `<div class="fact"><span>${l}</span><b>${esc(v)}</b></div>` : '';
     const tab = S.view.tab;
-    const nAbiertos = itemsDe(p.id).filter(abierto).length;
+    const abiertos = itemsDe(p.id).filter(abierto);
+    const venc = abiertos.filter(i => i.fecha_limite && i.fecha_limite < t && i.estado !== 'esperando').length;
+    const segs = abiertos.filter(i => i.estado === 'esperando').length;
+    const dIni = p.fecha_inicio ? diffDays(p.fecha_inicio, t) : null;
     const tb = (k, l) => `<button class="${tab === k ? 'on' : ''}" data-act="tab" data-tab="${k}">${l}</button>`;
     let content;
     if (tab === 'bitacora') content = tabBitacora(p);
@@ -424,17 +692,25 @@
     else if (tab === 'dinero') content = tabDinero(p);
     else content = tabChecklist(p);
     const mods = (p.modulos || []).map(id => byId('modulos', id)?.nombre).filter(Boolean);
+    const sem = semaforo(p);
     return `
-      <button class="btn ghost back" data-act="nav" data-to="programas">← Programas</button>
+      <div class="page-head"><button class="btn ghost back" data-act="nav" data-to="programas">${ICON.back}<span>Programas</span></button>
+        <div class="row"><select class="input" style="width:auto" data-change="prog-estado" data-id="${p.id}">${opts(Object.entries(ESTADOS_PROG), p.estado)}</select>
+        <button class="icon-btn" data-act="edit-prog" data-id="${p.id}" aria-label="Editar programa">${ICON.edit}</button></div></div>
       <div class="card phead">
-        <div class="row" style="align-items:flex-start">
-          <span class="dot ${semaforo(p)}" style="margin-top:7px"></span>
-          <div class="grow"><h1>${esc(p.nombre)}</h1>
-            <div class="muted small" style="margin-top:4px">${esc(ent?.nombre || 'Sin entidad')} · ${esc(rutaDe(p)?.nombre || '')}${mods.length ? ' + ' + esc(mods.join(', ')) : ''}</div></div>
-          <select class="input" style="width:auto" data-change="prog-estado" data-id="${p.id}">${opts(Object.entries(ESTADOS_PROG), p.estado)}</select>
-          <button class="icon-btn" data-act="edit-prog" data-id="${p.id}" aria-label="Editar programa">${ICON.edit}</button>
+        <div class="row" style="align-items:center;gap:14px">
+          ${ring(av.pct, 76, 8)}
+          <div class="grow" style="min-width:0"><h1>${esc(p.nombre)}</h1>
+            <div class="muted small" style="margin-top:4px">${esc(ent?.nombre || 'Sin entidad')} · ${esc(rutaDe(p)?.nombre || '')}${mods.length ? ' + ' + esc(mods.join(', ')) : ''}</div>
+            ${SEM_TXT[sem] && p.estado === 'activo' ? `<span class="pill ${SEM_PILL[sem]}" style="margin-top:8px">${SEM_TXT[sem]}</span>` : ''}</div>
         </div>
         ${p.estado === 'perdido' && p.motivo_perdida ? `<p class="small" style="color:var(--red)">Motivo: ${esc(p.motivo_perdida)}</p>` : ''}
+        <div class="mini-kpis">
+          <div><b>${av.d}/${av.n}</b><span>Esenciales</span></div>
+          <div class="${venc ? 'red' : ''}"><b>${venc}</b><span>Vencidos</span></div>
+          <div class="${segs ? 'amber' : ''}"><b>${segs}</b><span>Esperando</span></div>
+          <div><b>${dIni === null ? '—' : dIni > 0 ? dIni : dIni === 0 ? 'Hoy' : 'En curso'}</b><span>${dIni !== null && dIni > 0 ? 'Días al inicio' : 'Inicio'}</span></div>
+        </div>
         <div class="stepper">${fs.map((f, i) => `<div class="step ${f === fa ? 'now' : (ia === -1 || i < ia) ? 'done' : ''}"><i></i>${esc(f)}</div>`).join('')}</div>
         <div class="facts">
           ${fact('Tipo', p.tipo)}${fact('Facultad', p.facultad)}${fact('Director', p.director)}${fact('Modalidad', p.modalidad)}
@@ -444,7 +720,7 @@
         </div>
         ${p.notas ? `<p class="small muted" style="white-space:pre-wrap;margin-bottom:0">${esc(p.notas)}</p>` : ''}
       </div>
-      <div class="tabs">${tb('checklist', `Checklist · ${nAbiertos}`)}${tb('bitacora', 'Bitácora')}${tb('documentos', 'Documentos')}${tb('contactos', 'Contactos')}${tb('dinero', 'Facturación')}</div>
+      <div class="tabs">${tb('checklist', `Checklist <span>${abiertos.length}</span>`)}${tb('bitacora', 'Bitácora')}${tb('documentos', 'Documentos')}${tb('contactos', 'Contactos')}${tb('dinero', 'Facturación')}</div>
       ${content}`;
   }
 
@@ -556,7 +832,7 @@
   function viewPlantillas() {
     const rutas = [...S.data.rutas].sort((a, b) => a.orden - b.orden);
     const mods = [...S.data.modulos].sort((a, b) => a.orden - b.orden);
-    return `<h1>Plantillas</h1>
+    return `<div class="page-head"><button class="btn ghost back" data-act="nav" data-to="mas">${ICON.back}<span>Más</span></button></div><h1>Plantillas</h1>
       <p class="muted small">Así nace el checklist de cada programa. Cambiar una plantilla no altera los programas ya creados. La edición desde la app llega en la siguiente versión; mientras tanto, ajusta cada programa directamente.</p>
       <h3 class="section">Rutas base</h3>
       ${rutas.map(r => `<div class="card phase" style="margin-top:10px"><div class="pad"><h2>${esc(r.nombre)}</h2><div class="small muted">${esc(r.descripcion || '')}</div></div>
@@ -646,7 +922,7 @@
     if (!standalone) return;
     let x0 = null, y0 = 0, dx = 0, on = false, t0 = 0;
     const main = () => $('#app main');
-    const puedeVolver = () => isOpen() || S.view.name === 'programa';
+    const puedeVolver = () => isOpen() || S.view.name === 'programa' || S.view.name === 'plantillas';
     document.addEventListener('touchstart', e => {
       x0 = null;
       if (window.innerWidth >= 860 || e.touches.length > 1 || !puedeVolver()) return;
@@ -671,7 +947,7 @@
       if (!m) return;
       if (ok) {
         m.style.transition = 'transform .18s ease-out'; m.style.transform = 'translateX(100%)';
-        setTimeout(() => { S.navBack = true; if (history.length > 1) history.back(); else go('programas'); }, 180);
+        setTimeout(() => { S.navBack = true; if (history.length > 1) history.back(); else go(S.view.name === 'plantillas' ? 'mas' : 'programas'); }, 180);
       } else {
         m.style.transition = 'transform .2s ease-out'; m.style.transform = '';
         setTimeout(() => { m.style.transition = ''; }, 220);
@@ -848,6 +1124,15 @@
   const ACT = {
     noop() {},
     nav: el => go(el.dataset.to),
+    'nav-programas': () => go('programas'),
+    'nav-calendario': () => go('calendario'),
+    'cal-dia'(el) { S.cal.dia = el.dataset.d; render(); },
+    'cal-mes'(el) {
+      const [y, m] = S.cal.mes.split('-').map(Number), d = new Date(y, m - 1 + Number(el.dataset.n), 1);
+      S.cal.mes = `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+      S.cal.dia = S.cal.mes === today().slice(0, 7) ? today() : S.cal.mes + '-01'; render();
+    },
+    'cal-hoy'() { S.cal = { mes: today().slice(0, 7), dia: today() }; render(); },
     open: el => go('programa', el.dataset.id),
     tab(el) { S.view.tab = el.dataset.tab; history.replaceState(null, '', `#/programa/${S.view.id}/${S.view.tab}`); render(); },
     menu: menuMas,
@@ -1077,6 +1362,27 @@
     if (e.target.dataset.input === 'buscar') { S.f.q = e.target.value; const l = $('#prog-list'); if (l) l.innerHTML = listaProgramas(); }
   });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+  // Tooltip del gráfico de semanas: línea vertical + punto + texto al pasar el dedo o el mouse.
+  (() => {
+    let tip = null;
+    const hide = () => { if (tip) tip.hidden = true; document.querySelectorAll('.chart .xh').forEach(g => { g.style.display = 'none'; }); };
+    const show = e => {
+      const r = e.target.closest && e.target.closest('.chart rect.hit');
+      if (!r) { if (e.type === 'pointerdown') hide(); return; }
+      const svg = r.ownerSVGElement, g = svg.querySelector('.xh'), x = +r.dataset.x, y = +r.dataset.y;
+      g.style.display = ''; g.querySelector('line').setAttribute('x1', x); g.querySelector('line').setAttribute('x2', x);
+      g.querySelector('circle').setAttribute('cx', x); g.querySelector('circle').setAttribute('cy', y);
+      if (!tip) { tip = document.createElement('div'); tip.className = 'tip'; document.body.appendChild(tip); }
+      const [t1, t2] = r.dataset.tip.split('|'); tip.innerHTML = `<b>${esc(t1)}</b><span>${esc(t2)}</span>`; tip.hidden = false;
+      const rc = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal, px = rc.left + x / vb.width * rc.width, py = rc.top + y / vb.height * rc.height;
+      const w = tip.offsetWidth; tip.style.left = Math.min(window.innerWidth - w - 8, Math.max(8, px - w / 2)) + 'px'; tip.style.top = Math.max(8, py - tip.offsetHeight - 14) + 'px';
+    };
+    document.addEventListener('pointermove', show);
+    document.addEventListener('pointerdown', show);
+    document.addEventListener('pointerout', e => { if (e.pointerType === 'mouse' && e.target.closest && e.target.closest('.chart')) hide(); });
+    window.addEventListener('scroll', hide, { passive: true });
+  })();
 
   // ───────────── Actualización (como Caudal) ─────────────
   // Al abrir la app o volver a ella, compara la versión publicada con la que está corriendo; si cambió, recarga una vez.
